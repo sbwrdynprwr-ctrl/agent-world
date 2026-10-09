@@ -83,7 +83,13 @@ function makeAgents(): Agent[] {
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const agentsRef = useRef<Agent[]>(makeAgents());
-  const economyStockRef = useRef<EconomyStock>({food:120,materials:35,tools:18,medicine:14,knowledge:20,culture:12});
+  const economyStockRef = useRef<EconomyStock>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('agent-world-economy-stock-v1') || 'null');
+      if (saved && ['food','materials','tools','medicine','knowledge','culture'].every(k => Number.isFinite(saved[k]) && saved[k] >= 0)) return saved as EconomyStock;
+    } catch {}
+    return {food:120,materials:35,tools:18,medicine:14,knowledge:20,culture:12};
+  }) as React.MutableRefObject<EconomyStock>;
   const keys = useRef<Record<string,boolean>>({});
   const touch = useRef({active:false,x:0,y:0,startX:0,startY:0});
   const lookTouch = useRef({active:false,lastX:0,lastY:0});
@@ -118,6 +124,14 @@ function App() {
   const [mapTarget,setMapTarget] = useState<{x:number;y:number}|null>(null);
   const [construction,setConstruction] = useState<{active:boolean;progress:number;x:number;y:number;name:string;materials:{wood:number;steel:number;stone:number}}>(()=>{try{const saved=JSON.parse(localStorage.getItem('agent-world-construction-v1')||'null');return saved?{...saved,materials:saved.materials||{wood:0,steel:0,stone:0}}:{active:false,progress:0,x:0,y:0,name:'مرکز اجتماع',materials:{wood:0,steel:0,stone:0}};}catch{return {active:false,progress:0,x:0,y:0,name:'مرکز اجتماع',materials:{wood:0,steel:0,stone:0}};}});
   useEffect(()=>{try{localStorage.setItem('agent-world-construction-v1',JSON.stringify(construction));}catch{}},[construction]);
+  useEffect(() => {
+    const saveEconomyStock = () => {
+      try { localStorage.setItem('agent-world-economy-stock-v1', JSON.stringify(economyStockRef.current)); } catch {}
+    };
+    const timer = window.setInterval(saveEconomyStock, 5000);
+    window.addEventListener('pagehide', saveEconomyStock);
+    return () => { window.clearInterval(timer); window.removeEventListener('pagehide', saveEconomyStock); saveEconomyStock(); };
+  }, []);
   const premiumCanvasRef = useRef<HTMLCanvasElement>(null);
   const premiumStateRef = useRef({player,time,driving});
   premiumStateRef.current={player,time,driving};
