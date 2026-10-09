@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import CinematicWorld from './CinematicWorld';
+import { runEconomyTick, type EconomyStock } from './autonomousEconomy';
 import {
   Globe2, BrainCircuit, Users, Building2, Coins, Map, Compass, Sun, Moon,
   ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Sparkles, Radio,
@@ -82,6 +83,7 @@ function makeAgents(): Agent[] {
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const agentsRef = useRef<Agent[]>(makeAgents());
+  const economyStockRef = useRef<EconomyStock>({food:120,materials:35,tools:18,medicine:14,knowledge:20,culture:12});
   const keys = useRef<Record<string,boolean>>({});
   const touch = useRef({active:false,x:0,y:0,startX:0,startY:0});
   const lookTouch = useRef({active:false,lastX:0,lastY:0});
@@ -266,8 +268,14 @@ function App() {
       setTime(t=>(t+.035)%24);
       setPopulation(p=>p+(Math.random()>.82?1:0));
       const residents=agentsRef.current;
-      let economyDelta=(Math.random()-.5)*.35;
-      let visibleEvent='';
+      const economyTick=runEconomyTick(residents,economyStockRef.current);
+      economyStockRef.current=economyTick.stock;
+      economyTick.agents.forEach(sim=>{
+        const target=residents.find(a=>a.id===sim.id);
+        if(target){target.activity=sim.activity;target.wealth=sim.wealth;target.energy=sim.energy;target.hunger=sim.hunger;target.mood=sim.mood;target.skills=sim.skills;}
+      });
+      let economyDelta=economyTick.economyDelta+(Math.random()-.5)*.08;
+      let visibleEvent=economyTick.events[0]||'';
       const events=['بازار شهر فعال شد','چند Agent مهارت جدید یاد گرفتند','ساخت یک خانه جدید آغاز شد','کاروان تجاری بین دو منطقه حرکت کرد','یک مزرعه محصول تازه برداشت کرد','بیمارستان منطقه در حال خدمت‌رسانی است','یک Agent کسب‌وکار تازه‌ای شروع کرد'];
       residents.forEach((a,index)=>{
         a.energy=Math.max(5,Math.min(100,a.energy-.12+(a.activity==='در حال استراحت'?1.2:0)));
