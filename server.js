@@ -36,7 +36,7 @@ async function cloudResponse(input, instructions) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || 'gpt-6-astra',
+      model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
       instructions,
       input,
       max_output_tokens: 450
@@ -61,7 +61,7 @@ async function cloudResponse(input, instructions) {
 app.get('/api/ai/status', (_req, res) => res.json({
   configured: Boolean(process.env.OPENAI_API_KEY),
   provider: process.env.OPENAI_API_KEY ? 'openai' : 'local-simulation',
-  model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || 'gpt-6-astra') : null
+  model: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL || 'gpt-4.1-mini') : null
 }));
 
 app.post('/api/agent/chat', async (req, res) => {
