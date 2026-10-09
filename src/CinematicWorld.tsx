@@ -197,6 +197,7 @@ function addConstruction(root:THREE.Group,x:number,z:number,progress:number){
   }
   const roof=new THREE.Mesh(new THREE.BoxGeometry(23,.55,19),mat(0x2b7180,.35,.25));roof.position.set(0,8.7,0);roof.castShadow=true;piece(roof,.82);
   for(const side of[-1,1]){const pane=new THREE.Mesh(new THREE.BoxGeometry(.12,4,5),glass);pane.position.set(side*10.12,5,0);piece(pane,.9);}
+  site.visible=progress>0;
   root.add(site);
 }
 
@@ -262,7 +263,7 @@ function buildWorld(px:number,pz:number,constructionProgress:number,construction
     const az=axis==='z'?along:roadZ+side*10.4;
     addAgent(root,ax,az,i+1000,axis);
   }
-  if(constructionProgress>0)addConstruction(root,constructionX,constructionY,constructionProgress/100);
+  addConstruction(root,constructionX,constructionY,constructionProgress/100);
   return root;
 }
 
@@ -409,7 +410,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
 
           world.traverse(o=>{
             const g=o as THREE.Group;
-            if(g.userData?.isConstruction){g.children.forEach(child=>{if(child.userData.buildStage!==undefined)child.visible=s.constructionProgress/100>=child.userData.buildStage;});}
+            if(g.userData?.isConstruction){g.visible=s.constructionProgress>0;g.children.forEach(child=>{if(child.userData.buildStage!==undefined)child.visible=s.constructionProgress/100>=child.userData.buildStage;});}
             const u=g.userData||{};
             if(u.arms&&u.legs){
               const t=now*.0018*u.speed+u.phase;
