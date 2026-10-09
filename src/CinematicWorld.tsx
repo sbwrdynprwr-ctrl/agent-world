@@ -188,8 +188,6 @@ function addConstruction(root:THREE.Group,x:number,z:number,progress:number){
   const site=new THREE.Group();site.name='collaborative-construction';site.userData.isConstruction=true;site.position.set(x,0,z);
   const concrete=mat(0x9aa7a6,.9,.04),steel=mat(0x526a73,.48,.62),wood=mat(0xc18a4e,.82,.02),glass=mat(0x52cde7,.14,.38,.35);
   const piece=(mesh:THREE.Object3D,stage:number)=>{mesh.userData.buildStage=stage;mesh.visible=progress>=stage;site.add(mesh);};
-  piece(box(new THREE.Group(),0,0,0,0,0,0,0),0); // stable group root for the staged build
-  site.clear();
   const slab=new THREE.Mesh(new THREE.BoxGeometry(24,.7,20),concrete);slab.position.set(0,.35,0);slab.receiveShadow=true;piece(slab,0);
   for(let i=0;i<8;i++){const xoff=i%2===0?-10:10,zoff=i<4?-8:8;const col=new THREE.Mesh(new THREE.BoxGeometry(.5,7,.5),steel);col.position.set(xoff,3.8,zoff);col.castShadow=true;piece(col,.18);}
   for(let level=0;level<3;level++){
