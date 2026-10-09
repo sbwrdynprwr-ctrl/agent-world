@@ -148,6 +148,9 @@ function App() {
     if(['کمک در ساخت','ساخت خانه','ساخت مزرعه','ساخت کارخانه'].includes(command)){
       if(construction.active){setEventText('یک پروژه ساخت در حال اجراست؛ ابتدا همان پروژه را تکمیل کن');return;}
       const projectName=command==='ساخت خانه'?'خانه مسکونی':command==='ساخت مزرعه'?'مزرعه تولیدی':command==='ساخت کارخانه'?'کارخانه تولیدی':'مرکز اجتماع';
+      const materialCost=command==='ساخت خانه'?14:command==='ساخت مزرعه'?15:command==='ساخت کارخانه'?28:21;
+      if(economyStockRef.current.materials<materialCost){setEventText('مصالح اقتصادی کافی نیست؛ نیاز پروژه '+materialCost+' واحد است و موجودی '+Math.floor(economyStockRef.current.materials)+' واحد است. از سازندگان و راننده‌ها بخواه تولید کنند.');return;}
+      economyStockRef.current={...economyStockRef.current,materials:economyStockRef.current.materials-materialCost};
       const target={x:player.x+18,y:player.y+18};
       setConstruction({active:true,progress:0,x:target.x,y:target.y,name:projectName,materials:{wood:0,steel:0,stone:0}});
       setRallyTarget(target);
