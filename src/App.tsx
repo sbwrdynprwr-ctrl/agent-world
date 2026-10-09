@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { api } from '@appdeploy/client';
 import CinematicWorld from './CinematicWorld';
 import {
   Globe2, BrainCircuit, Users, Building2, Coins, Map, Compass, Sun, Moon,
   ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Sparkles, Radio,
   Navigation, Eye, Home, Factory, HeartPulse, ShoppingCart, Wheat, MessageCircle,
   Send, X, Zap, Heart, BriefcaseBusiness, GraduationCap, Utensils, Car, SlidersHorizontal} from 'lucide-react';
+
+const api = {
+  get: (path: string) => fetch(path).then(async r => ({ data: await r.json() })),
+  post: (path: string, body: unknown) => fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(async r => ({ data: await r.json() }))
+};
 
 type Player = { x:number; y:number; angle:number };
 type Agent = {
