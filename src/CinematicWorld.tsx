@@ -187,7 +187,7 @@ function addLamp(root:THREE.Group,x:number,z:number,seed:number){
 function buildWorld(px:number,pz:number){
   const root=new THREE.Group();
   const size=CELL*(RANGE*2+1);
-  const ground=new THREE.Mesh(new THREE.PlaneGeometry(size,size,64,64),mat(0x365e42,.98,.01));
+  const groundGeo=new THREE.PlaneGeometry(size,size,96,96);\n  const groundPos=groundGeo.attributes.position;\n  const groundColors:number[]=[];\n  const grassPalette=[new THREE.Color(0x47764b),new THREE.Color(0x527f4a),new THREE.Color(0x3e6b42),new THREE.Color(0x68864c)];\n  for(let i=0;i<groundPos.count;i++){const v=grassPalette[Math.floor(hash(i,7)*grassPalette.length)];groundColors.push(v.r,v.g,v.b);}\n  groundGeo.setAttribute('color',new THREE.Float32BufferAttribute(groundColors,3));\n  const groundMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:1,metalness:0});\n  const ground=new THREE.Mesh(groundGeo,groundMat);
   ground.rotation.x=-Math.PI/2;
   ground.position.set(px,0,pz);
   ground.receiveShadow=true;
@@ -261,28 +261,28 @@ export default function CinematicWorld({playerX,playerY,angle,time,onLook}:Props
     const init=()=>{
       try{
         renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));
         renderer.setSize(host.clientWidth||window.innerWidth,host.clientHeight||window.innerHeight,false);
         renderer.setClearColor(0x78a9b7,1);
         renderer.outputColorSpace=THREE.SRGBColorSpace;
         renderer.toneMapping=THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure=1.28;
+        renderer.toneMappingExposure=1.42;
         renderer.shadowMap.enabled=true;
-        renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+        renderer.shadowMap.type=THREE.PCFSoftShadowMap;\n        renderer.info.autoReset=true;
         renderer.domElement.className='cinematic-canvas';
         renderer.domElement.style.touchAction='none';
         host.appendChild(renderer.domElement);
 
         scene=new THREE.Scene();
-        scene.background=new THREE.Color(0x78a9b7);
-        scene.fog=new THREE.Fog(0x78a9b7,360,1900);
+        scene.background=new THREE.Color(0x9abfc7);
+        scene.fog=new THREE.Fog(0x9abfc7,480,2200);
 
-        const hemi=new THREE.HemisphereLight(0xe4f6ff,0x24372a,2.35);
+        const hemi=new THREE.HemisphereLight(0xeaf8ff,0x34462a,2.8);
         scene.add(hemi);
-        const sun=new THREE.DirectionalLight(0xfff0d8,6.2);
+        const sun=new THREE.DirectionalLight(0xfff3dc,7.4);
         sun.position.set(-260,420,220);
         sun.castShadow=true;
-        sun.shadow.mapSize.set(1536,1536);
+        sun.shadow.mapSize.set(2048,2048);
         sun.shadow.camera.near=1;
         sun.shadow.camera.far=1400;
         sun.shadow.camera.left=-500;
@@ -372,13 +372,13 @@ export default function CinematicWorld({playerX,playerY,angle,time,onLook}:Props
 
           world.position.set(-s.playerX,0,-s.playerY);
           const daylight=Math.max(.2,Math.sin(((s.time-6)/24)*Math.PI*2)*.5+.5);
-          const sky=new THREE.Color().setHSL(.55,.34,.28+daylight*.42);
+          const sky=new THREE.Color().setHSL(.56,.38,.34+daylight*.40);
           scene.background=sky;
           (scene.fog as THREE.Fog).color.copy(sky);
-          (scene.fog as THREE.Fog).near=daylight>.55?320:180;
-          (scene.fog as THREE.Fog).far=daylight>.55?1900:1100;
-          hemi.intensity=.8+daylight*2.1;
-          sun.intensity=1.1+daylight*4.9;
+          (scene.fog as THREE.Fog).near=daylight>.55?420:230;
+          (scene.fog as THREE.Fog).far=daylight>.55?2200:1350;
+          hemi.intensity=1.05+daylight*2.15;
+          sun.intensity=1.35+daylight*5.4;
           sun.position.set(Math.cos(s.time/24*Math.PI*2)*420,260+daylight*420,Math.sin(s.time/24*Math.PI*2)*340);
           cityGlow.intensity=.8+(1-daylight)*7;
 
