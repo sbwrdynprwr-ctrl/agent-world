@@ -1,7 +1,7 @@
 import {useEffect,useRef} from 'react';
 import * as THREE from 'three';
 
-type Props={playerX:number;playerY:number;angle:number;time:number;constructionProgress:number;constructionX:number;constructionY:number;onLook:(delta:number)=>void};
+type Props={playerX:number;playerY:number;angle:number;time:number;constructionProgress:number;constructionX:number;constructionY:number;constructionName:string;onLook:(delta:number)=>void};
 
 const CELL=180;
 const RANGE=2;
@@ -184,24 +184,57 @@ function addLamp(root:THREE.Group,x:number,z:number,seed:number){
   lamp.position.copy(light.position);root.add(lamp);
 }
 
-function addConstruction(root:THREE.Group,x:number,z:number,progress:number){
+function addConstruction(root:THREE.Group,x:number,z:number,progress:number,name:string){
   const site=new THREE.Group();site.name='collaborative-construction';site.userData.isConstruction=true;site.position.set(x,0,z);
   const concrete=mat(0x9aa7a6,.9,.04),steel=mat(0x526a73,.48,.62),wood=mat(0xc18a4e,.82,.02),glass=mat(0x52cde7,.14,.38,.35);
   const piece=(mesh:THREE.Object3D,stage:number)=>{mesh.userData.buildStage=stage;mesh.visible=progress>=stage;site.add(mesh);};
-  const slab=new THREE.Mesh(new THREE.BoxGeometry(24,.7,20),concrete);slab.position.set(0,.35,0);slab.receiveShadow=true;piece(slab,0);
-  for(let i=0;i<8;i++){const xoff=i%2===0?-10:10,zoff=i<4?-8:8;const col=new THREE.Mesh(new THREE.BoxGeometry(.5,7,.5),steel);col.position.set(xoff,3.8,zoff);col.castShadow=true;piece(col,.18);}
-  for(let level=0;level<3;level++){
-    const y=2.2+level*2.2;
-    for(const side of[-1,1]){const beam=new THREE.Mesh(new THREE.BoxGeometry(20,.24,.24),wood);beam.position.set(0,y,side*8);piece(beam,.35+level*.18);}
-    for(const side of[-1,1]){const beam=new THREE.Mesh(new THREE.BoxGeometry(.24,.24,16),wood);beam.position.set(side*10,y,0);piece(beam,.35+level*.18);}
+  const box=(w:number,h:number,d:number,m:THREE.Material,px:number,py:number,pz:number,stage:number)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(px,py,pz);o.castShadow=true;o.receiveShadow=true;piece(o,stage);return o;};
+  box(24,.7,20,concrete,0,.35,0,0);
+  if(name.includes('مزرعه')){
+    const soil=mat(0x76532e,.95,0),leaf=mat(0x4b8d45,.8,0),water=mat(0x4f9ca8,.25,.25);
+    box(20,.16,16,soil,0,.78,0,.12);
+    for(let row=0;row<6;row++){
+      box(1.1,.16,15,water,-8+row*3.2,.9,0,.2);
+      for(let col=0;col<7;col++){
+        const crop=new THREE.Mesh(new THREE.ConeGeometry(.42,1.4,5),leaf);
+        crop.position.set(-6.5+row*2.15,1.55,-6+col*2);crop.castShadow=true;piece(crop,.28+col*.055);
+      }
+    }
+    const shed=box(5,3.4,4,wood,7,2.4,-7,.58);
+    const roof=box(5.8,.35,4.8,steel,7,4.2,-7,.72);
+  }else if(name.includes('کارخانه')){
+    box(19,.35,15,steel,0,.8,0,.12);
+    box(15,8,12,concrete,0,4.8,0,.28);
+    box(16,.5,13,steel,0,9,0,.55);
+    for(let i=0;i<3;i++){
+      const chimney=new THREE.Mesh(new THREE.CylinderGeometry(.7,.95,8,12),steel);
+      chimney.position.set(-5+i*5,13,2);chimney.castShadow=true;piece(chimney,.7+i*.07);
+      const rim=new THREE.Mesh(new THREE.CylinderGeometry(1,1,.35,12),wood);
+      rim.position.set(-5+i*5,17,2);piece(rim,.88);
+    }
+    for(let i=0;i<5;i++)box(1.2,2,.25,glass,-6+i*3,5.2,-6.13,.42);
+  }else if(name.includes('خانه')){
+    box(14,4.8,12,concrete,0,3.1,0,.2);
+    for(let i=0;i<4;i++)box(.22,3.4,.22,wood,-5+i*3.3,2.8,6.1,.32);
+    box(15,.35,13,wood,0,5.65,0,.52);
+    const roof=new THREE.Mesh(new THREE.ConeGeometry(10,4,4),mat(0x9b5140,.8,.02));
+    roof.rotation.y=Math.PI/4;roof.position.set(0,7.6,0);roof.castShadow=true;piece(roof,.72);
+    box(2.2,3.2,.25,wood,0,2.5,6.18,.4);
+    for(let i=0;i<3;i++)box(1.5,1.3,.18,glass,-4+i*4,3.8,6.2,.58);
+  }else{
+    for(let i=0;i<8;i++){const xoff=i%2===0?-10:10,zoff=i<4?-8:8;box(.5,7,.5,steel,xoff,3.8,zoff,.18);}
+    for(let level=0;level<3;level++){
+      const y=2.2+level*2.2;
+      for(const side of[-1,1])box(20,.24,.24,wood,0,y,side*8,.35+level*.18);
+      for(const side of[-1,1])box(.24,.24,16,wood,side*10,y,0,.35+level*.18);
+    }
+    box(23,.55,19,mat(0x2b7180,.35,.25),0,8.7,0,.82);
+    for(const side of[-1,1])box(.12,4,5,glass,side*10.12,5,0,.9);
   }
-  const roof=new THREE.Mesh(new THREE.BoxGeometry(23,.55,19),mat(0x2b7180,.35,.25));roof.position.set(0,8.7,0);roof.castShadow=true;piece(roof,.82);
-  for(const side of[-1,1]){const pane=new THREE.Mesh(new THREE.BoxGeometry(.12,4,5),glass);pane.position.set(side*10.12,5,0);piece(pane,.9);}
   site.visible=progress>0;
   root.add(site);
 }
-
-function buildWorld(px:number,pz:number,constructionProgress:number,constructionX:number,constructionY:number){
+function buildWorld(px:number,pz:number,constructionProgress:number,constructionX:number,constructionY:number,constructionName:string){
   const root=new THREE.Group();
   const size=CELL*(RANGE*2+1);
   const groundGeo=new THREE.PlaneGeometry(size,size,96,96);
@@ -263,15 +296,15 @@ function buildWorld(px:number,pz:number,constructionProgress:number,construction
     const az=axis==='z'?along:roadZ+side*10.4;
     addAgent(root,ax,az,i+1000,axis);
   }
-  addConstruction(root,constructionX,constructionY,constructionProgress/100);
+  addConstruction(root,constructionX,constructionY,constructionProgress/100,constructionName);
   return root;
 }
 
-export default function CinematicWorld({playerX,playerY,angle,time,constructionProgress,constructionX,constructionY,onLook}:Props){
+export default function CinematicWorld({playerX,playerY,angle,time,constructionProgress,constructionX,constructionY,constructionName,onLook}:Props){
   const hostRef=useRef<HTMLDivElement>(null);
-  const latest=useRef({playerX,playerY,angle,time,constructionProgress,constructionX,constructionY});
+  const latest=useRef({playerX,playerY,angle,time,constructionProgress,constructionX,constructionY,constructionName});
   const look=useRef({active:false,lastX:0});
-  latest.current={playerX,playerY,angle,time,constructionProgress,constructionX,constructionY};
+  latest.current={playerX,playerY,angle,time,constructionProgress,constructionX,constructionY,constructionName};
 
   useEffect(()=>{
     let alive=true;
@@ -340,7 +373,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
         }
         camera.add(hands);
 
-        world=buildWorld(latest.current.playerX,latest.current.playerY,latest.current.constructionProgress,latest.current.constructionX,latest.current.constructionY);
+        world=buildWorld(latest.current.playerX,latest.current.playerY,latest.current.constructionProgress,latest.current.constructionX,latest.current.constructionY,latest.current.constructionName);
         scene.add(world);
 
         const resize=()=>{
@@ -390,7 +423,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
               if(Array.isArray(m.material))m.material.forEach(v=>v.dispose());
               else if(m.material)m.material.dispose();
             });
-            world=buildWorld(s.playerX,s.playerY,s.constructionProgress,s.constructionX,s.constructionY);
+            world=buildWorld(s.playerX,s.playerY,s.constructionProgress,s.constructionX,s.constructionY,s.constructionName);
             scene.add(world);
             cellX=nx;
             cellZ=nz;
