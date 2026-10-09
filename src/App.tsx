@@ -114,7 +114,8 @@ function App() {
   const [rallyTarget,setRallyTarget] = useState<{x:number;y:number}|null>(null);
   const [agentCommand,setAgentCommand] = useState('');
   const [mapTarget,setMapTarget] = useState<{x:number;y:number}|null>(null);
-  const [construction,setConstruction] = useState<{active:boolean;progress:number;x:number;y:number;name:string}>({active:false,progress:0,x:0,y:0,name:'مرکز اجتماع'});
+  const [construction,setConstruction] = useState<{active:boolean;progress:number;x:number;y:number;name:string}>(()=>{try{return JSON.parse(localStorage.getItem('agent-world-construction-v1')||'null')||{active:false,progress:0,x:0,y:0,name:'مرکز اجتماع'};}catch{return {active:false,progress:0,x:0,y:0,name:'مرکز اجتماع'};}});
+  useEffect(()=>{try{localStorage.setItem('agent-world-construction-v1',JSON.stringify(construction));}catch{}},[construction]);
   const premiumCanvasRef = useRef<HTMLCanvasElement>(null);
   const premiumStateRef = useRef({player,time,driving});
   premiumStateRef.current={player,time,driving};
