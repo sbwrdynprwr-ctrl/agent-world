@@ -228,18 +228,22 @@ function App() {
 
   useEffect(()=>{
     if(!construction.active)return;
+    const requirements=construction.name.includes('مزرعه')?{wood:5,steel:2,stone:8}:construction.name.includes('کارخانه')?{wood:12,steel:10,stone:6}:construction.name.includes('خانه')?{wood:6,steel:3,stone:5}:{wood:8,steel:5,stone:8};
     const id=setInterval(()=>{
       const team=agentsRef.current.filter(a=>Math.hypot(a.x-construction.x,a.y-construction.y)<110);
       if(construction.progress>=100){
         setConstruction(prev=>({...prev,active:false,progress:100}));
         setRallyTarget(null);
-        setEventText('ساخت '+construction.name+' کامل شد؛ '+team.length+' ایجنت در پروژه همکاری کردند');
-        team.forEach(a=>{a.activity='در مرکز اجتماع ساخته‌شده';a.goal='نگهداری و استفاده از مرکز اجتماع';a.reputation=Math.min(100,a.reputation+2);});
-        setEconomy(e=>Math.min(100,e+2));
+        const isFarm=construction.name.includes('مزرعه'),isFactory=construction.name.includes('کارخانه'),isHouse=construction.name.includes('خانه');
+        const outcome=isFarm?'محصول غذایی و افزایش ذخیره غذا':isFactory?'تولید صنعتی و فرصت شغلی':isHouse?'مسکن جدید برای ساکنان':'مرکز اجتماع جدید';
+        setEventText('ساخت '+construction.name+' کامل شد؛ '+outcome+' · '+team.length+' ایجنت همکاری کردند');
+        team.forEach(a=>{a.activity=isFarm?'رسیدگی به مزرعه تکمیل‌شده':isFactory?'کار در کارخانه تکمیل‌شده':isHouse?'استفاده از خانه جدید':'نگهداری مرکز اجتماع';a.goal=isFarm?'تولید و برداشت محصول':isFactory?'تولید کالا و استخدام':'نگهداری و استفاده از '+construction.name;a.reputation=Math.min(100,a.reputation+2);});
+        setEconomy(e=>Math.min(100,e+(isFarm?3:isFactory?4:isHouse?1:2)));
+        if(isFarm)setPopulation(p=>p+2);
         return;
       }
       const gatherRate=Math.min(3,team.length*.09);
-      const hasMaterials=construction.materials.wood>=8&&construction.materials.steel>=5&&construction.materials.stone>=8;
+      const hasMaterials=construction.materials.wood>=requirements.wood&&construction.materials.steel>=requirements.steel&&construction.materials.stone>=requirements.stone;
       setConstruction(prev=>{
         const materials=hasMaterials
           ?{wood:Math.max(0,prev.materials.wood-.18),steel:Math.max(0,prev.materials.steel-.12),stone:Math.max(0,prev.materials.stone-.18)}
@@ -249,10 +253,10 @@ function App() {
       });
       team.forEach((a,i)=>{
         a.activity=hasMaterials?(i%3===0?'در حال ساخت سازه':i%3===1?'در حال حمل مصالح':'در حال هماهنگی ساخت'):(i%3===0?'جمع‌آوری چوب':i%3===1?'آماده‌سازی فولاد':'جمع‌آوری سنگ');
-        a.goal=hasMaterials?'تکمیل مرکز اجتماع':'جمع‌آوری مصالح برای مرکز اجتماع';
+        a.goal=hasMaterials?'تکمیل '+construction.name:'جمع‌آوری مصالح برای '+construction.name;
         if(Math.random()<.15)a.energy=Math.max(5,a.energy-1);
       });
-      if(team.length)setEventText(hasMaterials?'مصالح آماده است؛ '+team.length+' ایجنت در حال ساخت هستند':'تیم '+team.length+' ایجنتی در حال جمع‌آوری چوب، فولاد و سنگ است');
+      if(team.length)setEventText(hasMaterials?'مصالح آماده است؛ '+team.length+' ایجنت در حال ساخت '+construction.name+' هستند':'تیم '+team.length+' ایجنتی در حال جمع‌آوری مصالح برای '+construction.name+' است');
     },1000);
     return()=>clearInterval(id);
   },[construction.active,construction.progress,construction.x,construction.y,construction.name,construction.materials]);
