@@ -319,12 +319,12 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
     const init=()=>{
       try{
         renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
         renderer.setSize(host.clientWidth||window.innerWidth,host.clientHeight||window.innerHeight,false);
         renderer.setClearColor(0x78a9b7,1);
         renderer.outputColorSpace=THREE.SRGBColorSpace;
         renderer.toneMapping=THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure=1.42;
+        renderer.toneMappingExposure=1.5;
         renderer.shadowMap.enabled=true;
         renderer.shadowMap.type=THREE.PCFSoftShadowMap;
         renderer.info.autoReset=true;
@@ -341,7 +341,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
         const sun=new THREE.DirectionalLight(0xfff3dc,7.4);
         sun.position.set(-260,420,220);
         sun.castShadow=true;
-        sun.shadow.mapSize.set(2048,2048);
+        sun.shadow.mapSize.set(3072,3072);
         sun.shadow.camera.near=1;
         sun.shadow.camera.far=1400;
         sun.shadow.camera.left=-500;
