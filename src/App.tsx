@@ -114,6 +114,7 @@ function App() {
   const [rallyTarget,setRallyTarget] = useState<{x:number;y:number}|null>(null);
   const [agentCommand,setAgentCommand] = useState('');
   const [mapTarget,setMapTarget] = useState<{x:number;y:number}|null>(null);
+  const [construction,setConstruction] = useState<{active:boolean;progress:number;x:number;y:number;name:string}>({active:false,progress:0,x:0,y:0,name:'مرکز اجتماع'});
   const premiumCanvasRef = useRef<HTMLCanvasElement>(null);
   const premiumStateRef = useRef({player,time,driving});
   premiumStateRef.current={player,time,driving};
@@ -141,7 +142,12 @@ function App() {
   };
   const commandAgents=(command:string)=>{
     setAgentCommand(command);
-    if(command==='همه بیایند'||command==='کمک در ساخت'||command==='محافظت کنید'){
+    if(command==='کمک در ساخت'){
+      setConstruction(prev=>({active:true,progress:prev.active?prev.progress:0,x:player.x+18,y:player.y+18,name:'مرکز اجتماع'}));
+      setRallyTarget({x:player.x+18,y:player.y+18});
+      agentsRef.current.forEach(a=>{a.goal='کمک به ساخت مرکز اجتماع';a.activity='در حال رفتن به محل ساخت';});
+      setEventText('پروژه ساخت مرکز اجتماع شروع شد؛ ایجنت‌ها برای همکاری فراخوانده شدند');
+    }else if(command==='همه بیایند'||command==='محافظت کنید'){
       setRallyTarget({x:player.x,y:player.y});
       agentsRef.current.forEach(a=>{a.goal=command==='کمک در ساخت'?'کمک به ساخت‌وساز':command==='محافظت کنید'?'محافظت از فرمانده':'کمک به جامعه';a.activity='در حال اجرای فرمان: '+command;});
     }else if(command==='دنبال من بیایید'){
@@ -216,6 +222,26 @@ function App() {
     return()=>clearInterval(id);
   },[rallyTarget]);
 
+  useEffect(()=>{
+    if(!construction.active)return;
+    const id=setInterval(()=>{
+      const team=agentsRef.current.filter(a=>Math.hypot(a.x-construction.x,a.y-construction.y)<110);
+      if(construction.progress>=100){
+        setConstruction(prev=>({...prev,active:false,progress:100}));
+        setRallyTarget(null);
+        setEventText('ساخت '+construction.name+' کامل شد؛ '+team.length+' ایجنت در پروژه همکاری کردند');
+        team.forEach(a=>{a.activity='در مرکز اجتماع ساخته‌شده';a.goal='نگهداری و استفاده از مرکز اجتماع';a.reputation=Math.min(100,a.reputation+2);});
+        setEconomy(e=>Math.min(100,e+2));
+        return;
+      }
+      const contribution=Math.max(0.25,Math.min(2.5,team.length*0.12));
+      setConstruction(prev=>({...prev,progress:Math.min(100,prev.progress+contribution)}));
+      team.forEach((a,i)=>{a.activity=i%3===0?'در حال ساخت سازه':i%3===1?'در حال حمل مصالح':'در حال هماهنگی ساخت';a.goal='تکمیل مرکز اجتماع';if(Math.random()<.15)a.energy=Math.max(5,a.energy-1);});
+      if(team.length)setEventText('پروژه ساخت فعال است؛ '+team.length+' ایجنت در حال همکاری هستند');
+    },1000);
+    return()=>clearInterval(id);
+  },[construction.active,construction.progress,construction.x,construction.y,construction.name]);
+ 
   useEffect(()=>{
     const id=setInterval(()=>{
       setTime(t=>(t+.035)%24);
@@ -563,6 +589,7 @@ function App() {
     <CinematicWorld playerX={player.x} playerY={player.y} angle={player.angle} time={time} onLook={delta=>setPlayer(p=>({...p,angle:p.angle+delta}))} />
     <canvas ref={canvasRef} className='world-canvas' onPointerDown={e=>{if(e.clientX>innerWidth*.42){lookTouch.current={active:true,lastX:e.clientX,lastY:e.clientY};e.currentTarget.setPointerCapture(e.pointerId);}}} onPointerMove={e=>{if(!lookTouch.current.active)return;const dx=e.clientX-lookTouch.current.lastX;setPlayer(p=>({...p,angle:p.angle+dx*.006}));lookTouch.current.lastX=e.clientX;lookTouch.current.lastY=e.clientY;}} onPointerUp={e=>{lookTouch.current.active=false;if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>{lookTouch.current.active=false;}} />
     <canvas ref={premiumCanvasRef} className='premium-canvas' aria-hidden='true' />\n    <header className='hud topbar'><div className='brand'><div className='brand-mark'><Globe2 size={20}/></div><div><b>AGENT WORLD</b><span>یک تمدن زنده که خودش ادامه پیدا می‌کند</span></div></div><div className='stats'><span><Users/> {population.toLocaleString('fa-IR')}<small>جمعیت</small></span><span><Building2/> {nearbySites.filter(s=>s.kind==='city').length}<small>شهر نزدیک</small></span><span><Coins/> {Math.round(economy)}%<small>اقتصاد</small></span><span><BrainCircuit/> 220<small>Agent هوشمند</small></span></div><div className='top-actions'><button className='summon-btn' onClick={summonAllAgents}><Users/> همه Agentها</button><button className='map-btn' onClick={()=>setWorldMapOpen(v=>!v)}><Globe2/> کره جهان</button><button className='hud-toggle' onClick={()=>setHudOpen(v=>!v)} aria-label='نمایش کنترل‌ها'><SlidersHorizontal/> {hudOpen?'بستن پنل‌ها':'کنترل‌ها'}</button></div></header>
+    {hudOpen&&construction.progress>0&&<section className='hud construction-panel'><div><b>🏗️ پروژه ساخت: {construction.name}</b><span>{construction.active?'ایجنت‌ها در حال همکاری هستند':'پروژه تکمیل شده'}</span></div><strong>{Math.floor(construction.progress).toLocaleString('fa-IR')}٪</strong><div className='construction-track'><i style={{width:construction.progress+'%'}}/></div><small>هدف: ساخت مرکز اجتماع · همکاری جمعی ایجنت‌ها</small></section>}
     {hudOpen&&<section className='hud command-panel'><div className='command-title'><Users/><b>فرماندهی Agentها</b><small>{agentCommand||'یک فرمان انتخاب کن'}</small></div><div className='command-grid'>{['همه بیایند','دنبال من بیایید','کنار من بمانید','پراکنده شوید','کمک در ساخت','محافظت کنید','تجارت کنید'].map(c=><button key={c} className={agentCommand===c?'active':''} onClick={()=>commandAgents(c)}>{c}</button>)}</div></section>}
     {worldMapOpen&&<section className='hud global-map'><header><div><Globe2/><div><b>نقشه زنده جهان</b><small>کره جهانی · روی هر نقطه بزن و سپس حرکت کن</small></div></div><button onClick={()=>setWorldMapOpen(false)}><X/></button></header><div className='globe-stage' onPointerDown={chooseGlobePoint}><div className='globe-sphere'><div className='globe-lat lat1'/><div className='globe-lat lat2'/><div className='globe-lon lon1'/><div className='globe-lon lon2'/><i className='land land1'/><i className='land land2'/><i className='land land3'/><i className='land land4'/></div><b className='globe-you'>تو</b>{mapTarget&&<b className='globe-target' style={{left:(50+mapTarget.x/208)+'%',top:(50-mapTarget.y/111.6)+'%'}}>●</b>}</div><div className='map-readout'><span>جمعیت شبیه‌سازی: <b>{population.toLocaleString('fa-IR')}</b></span><span>Agentهای فعال: <b>۲۲۰</b></span></div><button className='jump-map-btn' disabled={!mapTarget} onClick={jumpToMapTarget}><Navigation/> رفتن به نقطه انتخاب‌شده</button></section>}
 
