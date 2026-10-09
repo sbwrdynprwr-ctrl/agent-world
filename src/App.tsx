@@ -463,13 +463,22 @@ function App() {
 
   const thinkAgent=async()=>{
     if(!selected)return;
+    const agentForThink=selected;
     setAiStatus('در حال تصمیم‌گیری عمیق…');
     try{
-      const res=await api.post('/api/agent/think',{agent:selected,world:{time,location:biome(cellAt(player.x,player.y).cx,cellAt(player.x,player.y).cy),economy,population}});
+      const res=await api.post('/api/agent/think',{agent:agentForThink,world:{time,location:biome(cellAt(player.x,player.y).cx,cellAt(player.x,player.y).cy),economy,population}});
       const d=res.data?.decision;
-      if(d){setDecision(String(d.action||'تصمیم جدید')+' · '+String(d.destination||'نامشخص'));setSelected(a=>a?({...a,activity:String(d.action||a.activity),mood:String(d.mood||a.mood)}):a);setEventText('Agent #'+selected.id+' تصمیم گرفت: '+String(d.action||'حرکت جدید'));}
-      setAiStatus('هوش فعال');
-    }catch{setAiStatus('ذهن موقتاً مشغول است');}
+      if(!d)throw new Error('empty_agent_decision');
+      const action=String(d.action||'تصمیم جدید');
+      const mode=res.data?.mode==='cloud-ai'?'تصمیم هوش ابری':'تصمیم شبیه‌سازی محلی';
+      setDecision(action+' · '+String(d.destination||'مقصد نامشخص')+' · '+mode);
+      setSelected(a=>a?({...a,activity:action,mood:String(d.mood||a.mood),goal:String(d.socialIntent||a.goal),social:Math.min(100,Math.max(0,a.social+Number(d.expectedReward||0)))}):a);
+      const liveAgent=agentsRef.current.find(a=>a.id===agentForThink.id);
+      if(liveAgent){liveAgent.activity=action;liveAgent.mood=String(d.mood||liveAgent.mood);liveAgent.goal=String(d.socialIntent||liveAgent.goal);liveAgent.social=Math.min(100,Math.max(0,liveAgent.social+Number(d.expectedReward||0)));}
+      setEventText('Agent #'+agentForThink.id+' تصمیم گرفت: '+action);
+      setAiStatus(mode);
+      void api.post('/api/agent/memory',{agentId:agentForThink.id,memory:'تصمیم: '+action+'؛ دلیل: '+String(d.reason||'')+'؛ مقصد: '+String(d.destination||''),importance:65}).then(()=>setMemoryCount(c=>c+1)).catch(()=>undefined);
+    }catch{setAiStatus('خطا در تصمیم‌گیری؛ تلاش دوباره لازم است');}
   };
 
   const localAgentReply=(a:Agent,message:string)=>{
