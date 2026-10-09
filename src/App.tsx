@@ -83,13 +83,13 @@ function makeAgents(): Agent[] {
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const agentsRef = useRef<Agent[]>(makeAgents());
-  const economyStockRef = useRef<EconomyStock>(() => {
+  const economyStockRef = useRef<EconomyStock>((() => {
     try {
       const saved = JSON.parse(localStorage.getItem('agent-world-economy-stock-v1') || 'null');
       if (saved && ['food','materials','tools','medicine','knowledge','culture'].every(k => Number.isFinite(saved[k]) && saved[k] >= 0)) return saved as EconomyStock;
     } catch {}
     return {food:120,materials:35,tools:18,medicine:14,knowledge:20,culture:12};
-  }) as React.MutableRefObject<EconomyStock>;
+  })());
   const keys = useRef<Record<string,boolean>>({});
   const touch = useRef({active:false,x:0,y:0,startX:0,startY:0});
   const lookTouch = useRef({active:false,lastX:0,lastY:0});
