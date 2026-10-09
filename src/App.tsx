@@ -220,22 +220,48 @@ function App() {
     const id=setInterval(()=>{
       setTime(t=>(t+.035)%24);
       setPopulation(p=>p+(Math.random()>.82?1:0));
-      setEconomy(e=>Math.max(60,Math.min(100,e+(Math.random()-.48)*.9)));
+      const residents=agentsRef.current;
+      let economyDelta=(Math.random()-.5)*.35;
+      let visibleEvent='';
       const events=['بازار شهر فعال شد','چند Agent مهارت جدید یاد گرفتند','ساخت یک خانه جدید آغاز شد','کاروان تجاری بین دو منطقه حرکت کرد','یک مزرعه محصول تازه برداشت کرد','بیمارستان منطقه در حال خدمت‌رسانی است','یک Agent کسب‌وکار تازه‌ای شروع کرد'];
-      setEventText(events[Math.floor(Math.random()*events.length)]);
-      agentsRef.current.forEach(a=>{
-        a.energy=Math.max(5,a.energy-.15);
-        a.hunger=Math.min(100,a.hunger+.35);
-        a.social=Math.max(0,Math.min(100,a.social+(Math.random()-.5)*2));
+      residents.forEach((a,index)=>{
+        a.energy=Math.max(5,Math.min(100,a.energy-.12+(a.activity==='در حال استراحت'?1.2:0)));
+        a.hunger=Math.max(0,Math.min(100,a.hunger+.22));
+        a.social=Math.max(0,Math.min(100,a.social+(Math.random()-.5)*1.2));
+        // Agents make their own small daily decisions instead of only changing stats.
+        if(Math.random()<.075){
+          if(a.hunger>76){
+            a.activity='در جست‌وجوی غذا';a.goal='تأمین غذا و نیازهای روزانه';a.hunger=Math.max(15,a.hunger-24);a.wealth=Math.max(0,a.wealth-8);a.mood='متمرکز';
+          }else if(a.energy<28){
+            a.activity='در حال استراحت';a.energy=Math.min(100,a.energy+18);a.mood='خسته';
+          }else if(a.social<32){
+            const friend=residents[(index+1+Math.floor(Math.random()*(residents.length-1)))%residents.length];
+            a.activity='در حال گفت‌وگو با Agent #'+friend.id;a.social=Math.min(100,a.social+10);friend.social=Math.min(100,friend.social+5);
+            a.mood='اجتماعی';friend.activity='گفت‌وگو با Agent #'+a.id;
+          }else{
+            const plans=['در حال کار روی مهارت '+a.skills[1],'در حال انجام وظیفه شغلی','در حال رفتن به بازار','در حال بررسی فرصت همکاری','در حال حرکت به سمت خانه'];
+            a.activity=plans[Math.floor(Math.random()*plans.length)];
+            if(a.activity==='در حال انجام وظیفه شغلی'){a.wealth+=3+Math.floor(a.intelligence/25);a.energy=Math.max(5,a.energy-2);economyDelta+=.018;}
+            if(a.activity==='در حال کار روی مهارت '+a.skills[1] && !a.skills.includes('یادگیری مداوم'))a.skills.push('یادگیری مداوم');
+            a.mood=a.personality.includes('اجتماعی')?'خوشحال':a.mood;
+          }
+          if(Math.random()<.12){visibleEvent='Agent #'+a.id+' تصمیم گرفت: '+a.activity;}
+        }
         if(a.energy<15)a.mood='خسته';
         else if(a.hunger>85)a.mood='نگران';
         else if(a.social>82)a.mood='اجتماعی';
-        if(a.hunger<55 && a.energy>35){a.wealth+=Math.max(0,Math.round((a.intelligence-70)*.02));}
-        if(a.social>88 && a.reputation>65 && Math.random()<.025){a.children=Math.min(5,a.children+1);a.generation=Math.max(a.generation,2);}
+        if(a.hunger<55 && a.energy>35 && Math.random()<.3){a.wealth+=Math.max(0,Math.round((a.intelligence-70)*.02));}
+        if(a.social>88 && a.reputation>65 && Math.random()<.004){a.children=Math.min(5,a.children+1);a.generation=Math.max(a.generation,2);}
+        // Lightweight autonomous movement around the current neighborhood.
+        if(!rallyTarget && Math.random()<.32){a.x+=a.vx*7+(Math.random()-.5)*3;a.y+=a.vy*7+(Math.random()-.5)*3;}
+        if(Math.random()<.08){a.vx=Math.max(-.6,Math.min(.6,a.vx+(Math.random()-.5)*.22));a.vy=Math.max(-.6,Math.min(.6,a.vy+(Math.random()-.5)*.22));}
       });
+      setEconomy(e=>Math.max(60,Math.min(100,e+economyDelta)));
+      if(visibleEvent)setEventText(visibleEvent);
+      else if(Math.random()<.35)setEventText(events[Math.floor(Math.random()*events.length)]);
     },2200);
     return()=>clearInterval(id);
-  },[]);
+  },[rallyTarget]);
 
   useEffect(()=>{
     if(!entered) return;
