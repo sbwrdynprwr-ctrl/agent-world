@@ -1,7 +1,7 @@
 import {useEffect,useRef} from 'react';
 import * as THREE from 'three';
 
-type Props={playerX:number;playerY:number;angle:number;time:number;onLook:(delta:number)=>void};
+type Props={playerX:number;playerY:number;angle:number;time:number;constructionProgress:number;constructionX:number;constructionY:number;onLook:(delta:number)=>void};
 
 const CELL=180;
 const RANGE=2;
@@ -184,7 +184,25 @@ function addLamp(root:THREE.Group,x:number,z:number,seed:number){
   lamp.position.copy(light.position);root.add(lamp);
 }
 
-function buildWorld(px:number,pz:number){
+function addConstruction(root:THREE.Group,x:number,z:number,progress:number){
+  const site=new THREE.Group();site.name='collaborative-construction';site.userData.isConstruction=true;site.position.set(x,0,z);
+  const concrete=mat(0x9aa7a6,.9,.04),steel=mat(0x526a73,.48,.62),wood=mat(0xc18a4e,.82,.02),glass=mat(0x52cde7,.14,.38,.35);
+  const piece=(mesh:THREE.Object3D,stage:number)=>{mesh.userData.buildStage=stage;mesh.visible=progress>=stage;site.add(mesh);};
+  piece(box(new THREE.Group(),0,0,0,0,0,0,0),0); // stable group root for the staged build
+  site.clear();
+  const slab=new THREE.Mesh(new THREE.BoxGeometry(24,.7,20),concrete);slab.position.set(0,.35,0);slab.receiveShadow=true;piece(slab,0);
+  for(let i=0;i<8;i++){const xoff=i%2===0?-10:10,zoff=i<4?-8:8;const col=new THREE.Mesh(new THREE.BoxGeometry(.5,7,.5),steel);col.position.set(xoff,3.8,zoff);col.castShadow=true;piece(col,.18);}
+  for(let level=0;level<3;level++){
+    const y=2.2+level*2.2;
+    for(const side of[-1,1]){const beam=new THREE.Mesh(new THREE.BoxGeometry(20,.24,.24),wood);beam.position.set(0,y,side*8);piece(beam,.35+level*.18);}
+    for(const side of[-1,1]){const beam=new THREE.Mesh(new THREE.BoxGeometry(.24,.24,16),wood);beam.position.set(side*10,y,0);piece(beam,.35+level*.18);}
+  }
+  const roof=new THREE.Mesh(new THREE.BoxGeometry(23,.55,19),mat(0x2b7180,.35,.25));roof.position.set(0,8.7,0);roof.castShadow=true;piece(roof,.82);
+  for(const side of[-1,1]){const pane=new THREE.Mesh(new THREE.BoxGeometry(.12,4,5),glass);pane.position.set(side*10.12,5,0);piece(pane,.9);}
+  root.add(site);
+}
+
+function buildWorld(px:number,pz:number,constructionProgress:number,constructionX:number,constructionY:number){
   const root=new THREE.Group();
   const size=CELL*(RANGE*2+1);
   const groundGeo=new THREE.PlaneGeometry(size,size,96,96);
@@ -246,14 +264,15 @@ function buildWorld(px:number,pz:number){
     const az=axis==='z'?along:roadZ+side*10.4;
     addAgent(root,ax,az,i+1000,axis);
   }
+  if(constructionProgress>0)addConstruction(root,constructionX,constructionY,constructionProgress/100);
   return root;
 }
 
-export default function CinematicWorld({playerX,playerY,angle,time,onLook}:Props){
+export default function CinematicWorld({playerX,playerY,angle,time,constructionProgress,constructionX,constructionY,onLook}:Props){
   const hostRef=useRef<HTMLDivElement>(null);
-  const latest=useRef({playerX,playerY,angle,time});
+  const latest=useRef({playerX,playerY,angle,time,constructionProgress,constructionX,constructionY});
   const look=useRef({active:false,lastX:0});
-  latest.current={playerX,playerY,angle,time};
+  latest.current={playerX,playerY,angle,time,constructionProgress,constructionX,constructionY};
 
   useEffect(()=>{
     let alive=true;
@@ -322,7 +341,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,onLook}:Props
         }
         camera.add(hands);
 
-        world=buildWorld(latest.current.playerX,latest.current.playerY);
+        world=buildWorld(latest.current.playerX,latest.current.playerY,latest.current.constructionProgress,latest.current.constructionX,latest.current.constructionY);
         scene.add(world);
 
         const resize=()=>{
@@ -372,7 +391,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,onLook}:Props
               if(Array.isArray(m.material))m.material.forEach(v=>v.dispose());
               else if(m.material)m.material.dispose();
             });
-            world=buildWorld(s.playerX,s.playerY);
+            world=buildWorld(s.playerX,s.playerY,s.constructionProgress,s.constructionX,s.constructionY);
             scene.add(world);
             cellX=nx;
             cellZ=nz;
@@ -392,6 +411,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,onLook}:Props
 
           world.traverse(o=>{
             const g=o as THREE.Group;
+            if(g.userData?.isConstruction){g.children.forEach(child=>{if(child.userData.buildStage!==undefined)child.visible=s.constructionProgress/100>=child.userData.buildStage;});}
             const u=g.userData||{};
             if(u.arms&&u.legs){
               const t=now*.0018*u.speed+u.phase;
