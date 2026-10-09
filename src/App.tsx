@@ -481,20 +481,38 @@ function App() {
     if(/شهر|جهان|کجا|منطقه/.test(q))return 'من در شهر '+a.home+' زندگی می‌کنم. این جهان در حال تغییر است و هدف من '+a.goal+' است. می‌توانیم منطقه را بررسی کنیم و برای بهتر شدنش برنامه بچینیم.';
     return 'جالب است که درباره «'+message.slice(0,100)+'» می‌پرسی. از دید من که '+a.personality+' هستم و به‌عنوان '+a.job+' کار می‌کنم، بهتر است قدم‌به‌قدم بررسی کنیم. هدف فعلی‌ام '+a.goal+' است. دوست داری از کدام بخش شروع کنیم؟';
   };
+  useEffect(() => {
+    let active = true;
+    const checkAI = async () => {
+      try {
+        const res = await api.get('/api/ai/status');
+        if (!active) return;
+        setAiStatus(res.data?.configured ? 'هوش ابری آماده' : 'هوش محلی فعال');
+      } catch {
+        if (active) setAiStatus('اتصال هوش بررسی‌نشده');
+      }
+    };
+    void checkAI();
+    const timer = window.setInterval(() => { void checkAI(); }, 60000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, []);
+
   const sendChat=async()=>{
     if(!selected||!chatInput.trim()||chatBusy)return;
+    const agentForReply = selected;
     const userText=chatInput.trim();setChatInput('');
     const next=[...chat,{role:'user' as const,content:userText}];setChat(next);setChatBusy(true);setAiStatus('در حال فکر کردن…');
     try{
-      const res=await api.post('/api/agent/chat',{agent:selected,messages:next,time,location:biome(cellAt(player.x,player.y).cx,cellAt(player.x,player.y).cy)});
+      const res=await api.post('/api/agent/chat',{agent:agentForReply,messages:next,time,location:biome(cellAt(player.x,player.y).cx,cellAt(player.x,player.y).cy)});
       const reply=String(res.data?.reply||'');
       if(!reply.trim())throw new Error('empty_agent_reply');
-      setChat(v=>[...v,{role:'assistant',content:reply}]);setAiStatus('هوش فعال');
+      setChat(v=>[...v,{role:'assistant',content:reply}]);
+      setAiStatus(res.data?.mode==='cloud-ai'?'پاسخ از هوش ابری':'پاسخ شبیه‌سازی محلی');
     }catch{
-      setChat(v=>[...v,{role:'assistant',content:localAgentReply(selected,userText)+' (حالت پاسخ محلی فعال است؛ سرویس هوش ابری موقتاً در دسترس نیست.)'}]);
-      setAiStatus('گفت‌وگوی محلی فعال');
+      setChat(v=>[...v,{role:'assistant',content:localAgentReply(agentForReply,userText)+' (پاسخ پشتیبان محلی؛ اتصال سرور یا هوش ابری خطا داد.)'}]);
+      setAiStatus('پاسخ پشتیبان محلی');
     }finally{
-      void api.post('/api/agent/memory',{agentId:selected.id,memory:'کاربر گفت: '+userText,importance:72}).then(()=>setMemoryCount(c=>c+1)).catch(()=>undefined);
+      void api.post('/api/agent/memory',{agentId:agentForReply.id,memory:'کاربر گفت: '+userText,importance:72}).then(()=>setMemoryCount(c=>c+1)).catch(()=>undefined);
       setChatBusy(false);
     }
   };
