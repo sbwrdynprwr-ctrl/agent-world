@@ -410,7 +410,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
 
           world.traverse(o=>{
             const g=o as THREE.Group;
-            if(g.userData?.isConstruction){g.visible=s.constructionProgress>0;g.children.forEach(child=>{if(child.userData.buildStage!==undefined)child.visible=s.constructionProgress/100>=child.userData.buildStage;});}
+            if(g.userData?.isConstruction){g.position.x=s.constructionX;g.position.z=s.constructionY;g.visible=s.constructionProgress>0;g.children.forEach(child=>{if(child.userData.buildStage!==undefined)child.visible=s.constructionProgress/100>=child.userData.buildStage;});}
             const u=g.userData||{};
             if(u.arms&&u.legs){
               const t=now*.0018*u.speed+u.phase;
