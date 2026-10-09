@@ -187,7 +187,14 @@ function addLamp(root:THREE.Group,x:number,z:number,seed:number){
 function buildWorld(px:number,pz:number){
   const root=new THREE.Group();
   const size=CELL*(RANGE*2+1);
-  const groundGeo=new THREE.PlaneGeometry(size,size,96,96);\n  const groundPos=groundGeo.attributes.position;\n  const groundColors:number[]=[];\n  const grassPalette=[new THREE.Color(0x47764b),new THREE.Color(0x527f4a),new THREE.Color(0x3e6b42),new THREE.Color(0x68864c)];\n  for(let i=0;i<groundPos.count;i++){const v=grassPalette[Math.floor(hash(i,7)*grassPalette.length)];groundColors.push(v.r,v.g,v.b);}\n  groundGeo.setAttribute('color',new THREE.Float32BufferAttribute(groundColors,3));\n  const groundMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:1,metalness:0});\n  const ground=new THREE.Mesh(groundGeo,groundMat);
+  const groundGeo=new THREE.PlaneGeometry(size,size,96,96);
+  const groundPos=groundGeo.attributes.position;
+  const groundColors:number[]=[];
+  const grassPalette=[new THREE.Color(0x47764b),new THREE.Color(0x527f4a),new THREE.Color(0x3e6b42),new THREE.Color(0x68864c)];
+  for(let i=0;i<groundPos.count;i++){const v=grassPalette[Math.floor(hash(i,7)*grassPalette.length)];groundColors.push(v.r,v.g,v.b);}
+  groundGeo.setAttribute('color',new THREE.Float32BufferAttribute(groundColors,3));
+  const groundMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:1,metalness:0});
+  const ground=new THREE.Mesh(groundGeo,groundMat);
   ground.rotation.x=-Math.PI/2;
   ground.position.set(px,0,pz);
   ground.receiveShadow=true;
@@ -268,7 +275,8 @@ export default function CinematicWorld({playerX,playerY,angle,time,onLook}:Props
         renderer.toneMapping=THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure=1.42;
         renderer.shadowMap.enabled=true;
-        renderer.shadowMap.type=THREE.PCFSoftShadowMap;\n        renderer.info.autoReset=true;
+        renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+        renderer.info.autoReset=true;
         renderer.domElement.className='cinematic-canvas';
         renderer.domElement.style.touchAction='none';
         host.appendChild(renderer.domElement);
