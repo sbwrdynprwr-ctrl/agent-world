@@ -60,7 +60,9 @@ export function runEconomyTick(agents: EconomyAgent[], previous: EconomyStock): 
     }
 
     const options = tasks[agent.job] || [{ activity: 'یادگیری مهارت تازه', product: 'knowledge' as const, amount: 1, energy: 3, pay: 3 }];
-    const task = options[(agent.id + Math.floor(agent.wealth)) % options.length];
+    let task = options[(agent.id + Math.floor(agent.wealth)) % options.length];
+    if (stock.food < Math.max(25, next.length * 0.35) && (agent.job === 'کشاورز' || agent.job === 'ماهیگیر')) task = options[options.length - 1];
+    if (stock.medicine < 8 && agent.job === 'پزشک') task = options[0];
     agent.activity = task.activity;
     agent.energy = Math.max(0, agent.energy - task.energy);
 
