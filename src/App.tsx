@@ -43,8 +43,8 @@ function isBuildingBlocked(x:number,y:number,originX:number,originY:number,radiu
     const seed=gx*97+gy*131;
     if(hash(seed,7)<=.28) continue;
     for(let i=0;i<3;i++) {
-      const bx=(gx+.5)*size+(hash(seed+i,i)-.5)*110;
-      const by=(gy+.5)*size+(hash(seed+i,i+10)-.5)*110;
+      const bx=(gx+.5)*size+(hash(seed,i)-.5)*110;
+      const by=(gy+.5)*size+(hash(seed,i+10)-.5)*110;
       if(!(Math.abs(bx-roadX)>25&&Math.abs(by-roadY)>25)) continue;
       const w=13+hash(seed+i,2)*13, d=13+hash(seed+i,3)*12;
       if(Math.abs(x-bx)<w/2+radius&&Math.abs(y-by)<d/2+radius) return true;
