@@ -131,8 +131,10 @@ function addCar(root:THREE.Group,x:number,z:number,seed:number,axis:'x'|'z'){
     w.position.set(sz,.45,sx);
     g.add(w);
   }
-  box(g,.16,.18,.52,0x8deaff,2.9,.9,-.7,glow(0x8deaff,2.8));
-  box(g,.16,.18,.52,0x8deaff,2.9,.9,.7,glow(0x8deaff,2.8));
+  box(g,.16,.18,.52,0xfff0c2,2.9,.9,-.7,glow(0xffe5a3,1.4));
+  box(g,.16,.18,.52,0xfff0c2,2.9,.9,.7,glow(0xffe5a3,1.4));
+  box(g,.12,.16,.38,0xe4483f,-2.92,.9,-.68,glow(0xe4483f,.55));
+  box(g,.12,.16,.38,0xe4483f,-2.92,.9,.68,glow(0xe4483f,.55));
   g.position.set(x,.1,z);
   g.rotation.y=axis==='z'?Math.PI/2:0;
   g.userData={phase:hash(seed,8)*6.28,speed:5+hash(seed,9)*2.5,axis,originX:x,originZ:z,wheels:g.children.filter(o=>o instanceof THREE.Mesh && (o.geometry as THREE.CylinderGeometry).type==='CylinderGeometry')};
