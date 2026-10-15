@@ -310,6 +310,44 @@ function App() {
     return()=>clearInterval(id);
   },[construction.active,construction.progress,construction.x,construction.y,construction.name,construction.materials]);
  
+  // Autonomous civilization director: agents start useful public projects without player commands.
+  const lastAutonomousProject = useRef(0);
+  useEffect(() => {
+    if (!entered) return;
+    const planCivilization = () => {
+      if (construction.active || Date.now() - lastAutonomousProject.current < 45000) return;
+      const stock = economyStockRef.current;
+      const residents = agentsRef.current;
+      if (residents.length < 10) return;
+      let projectName = '';
+      let kind: 'farm' | 'house' | 'factory' | 'center' = 'center';
+      // The simulated government prioritizes food and healthcare before expansion.
+      if (stock.food < 35) { projectName = 'مزرعه تولیدی خودمختار'; kind = 'farm'; }
+      else if (stock.medicine < 7) { projectName = 'مرکز درمانی خودمختار'; kind = 'center'; }
+      else if (stock.materials >= 45 && stock.tools >= 20 && economy > 72) { projectName = 'کارخانه تولیدی خودمختار'; kind = 'factory'; }
+      else if (stock.food > 70 && stock.materials >= 25 && population < 8200000200) { projectName = 'خانه مسکونی خودمختار'; kind = 'house'; }
+      else if (stock.knowledge >= 25 && stock.materials >= 22 && stock.tools >= 12) { projectName = 'مرکز پژوهش خودمختار'; kind = 'center'; }
+      if (!projectName) return;
+      const materialCost = kind === 'factory' ? 28 : kind === 'farm' ? 15 : kind === 'house' ? 14 : 21;
+      if (stock.materials < materialCost) return;
+      economyStockRef.current = { ...stock, materials: Math.max(0, stock.materials - materialCost) };
+      const target = { x: player.x + 22, y: player.y + 22 };
+      lastAutonomousProject.current = Date.now();
+      setConstruction({ active: true, progress: 0, x: target.x, y: target.y, name: projectName, materials: { wood: 0, steel: 0, stone: 0 } });
+      setRallyTarget(target);
+      const builders = residents.filter(a => ['مهندس','معمار','سازنده','کشاورز','راننده','برنامه‌نویس'].includes(a.job));
+      builders.forEach(a => {
+        a.goal = 'توسعه خودمختار تمدن: ' + projectName;
+        a.activity = kind === 'farm' ? 'در حال آماده‌سازی مزرعه برای امنیت غذایی' : 'در حال رفتن به پروژه عمومی ' + projectName;
+      });
+      setEventText('🏗️ تمدن خودش تصمیم گرفت «' + projectName + '» بسازد؛ ' + builders.length + ' متخصص برای توسعه زیرساخت بسیج شدند.');
+      setHudOpen(true);
+    };
+    const timer = window.setInterval(planCivilization, 12000);
+    const first = window.setTimeout(planCivilization, 5000);
+    return () => { window.clearInterval(timer); window.clearTimeout(first); };
+  }, [entered, construction.active, economy, population, player.x, player.y]);
+
   useEffect(()=>{
     const id=setInterval(()=>{
       setTime(t=>(t+.035)%24);
