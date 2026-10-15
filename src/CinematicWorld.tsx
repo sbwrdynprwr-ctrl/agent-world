@@ -138,7 +138,7 @@ function addCar(root:THREE.Group,x:number,z:number,seed:number,axis:'x'|'z'){
   box(g,.12,.16,.38,0xe4483f,-2.92,.9,.68,glow(0xe4483f,.55));
   g.position.set(x,.1,z);
   g.rotation.y=axis==='z'?Math.PI/2:0;
-  g.userData={phase:hash(seed,8)*90,speed:3.8+hash(seed,9)*1.6,direction:hash(seed,10)>.5?1:-1,axis,originX:x,originZ:z,wheels:g.children.filter(o=>o instanceof THREE.Mesh && (o.geometry as THREE.CylinderGeometry).type==='CylinderGeometry')};
+  g.userData={isVehicle:true,phase:hash(seed,8)*90,speed:3.8+hash(seed,9)*1.6,direction:hash(seed,10)>.5?1:-1,axis,originX:x,originZ:z,wheels:g.children.filter(o=>o instanceof THREE.Mesh && (o.geometry as THREE.CylinderGeometry).type==='CylinderGeometry')};
   root.add(g);
 }
 
@@ -510,13 +510,27 @@ export default function CinematicWorld({playerX,playerY,angle,onMoveTarget,time,
               const direction=u.direction===-1?-1:1;
               const distance=((now*.001*u.speed*direction+(u.phase||0)+45)%90+90)%90-45;
               const forward=direction>0;
+              // Keep a safe following gap between cars travelling in the same lane.
+              // Compare only vehicles on the same road axis and lane, not crossing traffic.
+              const laneCoordinate=u.axis==='x'?u.originZ:u.originX;
+              const candidate=u.axis==='x'?u.originX+distance:u.originZ+distance;
+              const blocked=(animated||[]).some(other=>{
+                if(other===g||!other.userData?.isVehicle||other.userData.axis!==u.axis)return false;
+                const ou=other.userData;
+                const otherLane=u.axis==='x'?ou.originZ:ou.originX;
+                if(Math.abs(laneCoordinate-otherLane)>1.5)return false;
+                const otherCoordinate=u.axis==='x'?other.position.x:other.position.z;
+                const gap=(otherCoordinate-candidate)*direction;
+                return gap>0.2&&gap<8.2;
+              });
+              const safeDistance=blocked?(u.axis==='x'?g.position.x-u.originX:g.position.z-u.originZ):distance;
               if(u.axis==='x'){
-                g.position.x=u.originX+distance;
+                g.position.x=u.originX+safeDistance;
                 g.position.z=u.originZ;
                 g.rotation.y=forward?0:Math.PI;
               }else{
                 g.position.x=u.originX;
-                g.position.z=u.originZ+distance;
+                g.position.z=u.originZ+safeDistance;
                 g.rotation.y=forward?-Math.PI/2:Math.PI/2;
               }
               if(u.wheels){const roll=0.035*u.speed*direction;for(const wheel of u.wheels as THREE.Object3D[]){if(u.axis==='x')wheel.rotation.z+=roll;else wheel.rotation.x+=roll;}}
