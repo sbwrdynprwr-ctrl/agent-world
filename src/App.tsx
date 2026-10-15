@@ -114,6 +114,8 @@ function makeAgents(): Agent[] {
 
 function App() {
   const agentsRef = useRef<Agent[]>(makeAgents());
+  const cloudBatchCursor = useRef(0);
+  const cloudBatchBusy = useRef(false);
   const economyStockRef = useRef<EconomyStock>((() => {
     try {
       const saved = JSON.parse(localStorage.getItem('agent-world-economy-stock-v1') || 'null');
@@ -501,6 +503,54 @@ function App() {
     const timer = window.setInterval(() => { void checkAI(); }, 60000);
     return () => { active = false; window.clearInterval(timer); };
   }, []);
+
+  useEffect(()=>{
+    if(!entered)return;
+    let active=true;
+    const cloudThinkBatch=async()=>{
+      if(!active||cloudBatchBusy.current)return;
+      cloudBatchBusy.current=true;
+      try{
+        const status=await api.get('/api/ai/status');
+        if(!active)return;
+        if(!status.data?.configured){setAiStatus('هوش محلی فعال · کلید ابری در سرور پیدا نشد');return;}
+        const residents=agentsRef.current;
+        if(!residents.length)return;
+        const start=cloudBatchCursor.current%residents.length;
+        const batch=Array.from({length:Math.min(6,residents.length)},(_,i)=>residents[(start+i)%residents.length]).map(a=>({
+          id:a.id,job:a.job,personality:a.personality,goal:a.goal,mood:a.mood,activity:a.activity,
+          hunger:a.hunger,energy:a.energy,social:a.social,wealth:a.wealth,intelligence:a.intelligence,
+          skills:a.skills,home:a.home,location:{x:Math.round(a.x),y:Math.round(a.y)}
+        }));
+        cloudBatchCursor.current=(start+batch.length)%residents.length;
+        const res=await api.post('/api/agents/autonomy',{agents:batch,world:{time, economy, population, player:{x:Math.round(player.x),y:Math.round(player.y)}}});
+        if(!active)return;
+        if(res.data?.mode!=='cloud-ai'||!Array.isArray(res.data?.decisions))throw new Error('cloud_batch_unavailable');
+        let applied=0;
+        for(const d of res.data.decisions){
+          const live=residents.find(a=>a.id===Number(d.agentId));
+          if(!live)continue;
+          const action=String(d.action||'ادامه فعالیت روزانه').slice(0,180);
+          live.activity=action;
+          live.goal=String(d.socialIntent||d.destination||live.goal).slice(0,140);
+          if(d.mood)live.mood=String(d.mood).slice(0,40);
+          live.social=Math.max(0,Math.min(100,live.social+Number(d.expectedReward||0)));
+          const lower=action.toLowerCase();
+          const preferred:Site['kind'][]=/غذا|خوراک|مزرعه|برداشت/.test(lower)?['farm','market']:/گفت.?وگو|دوست|اجتماع|همکاری/.test(lower)?['park','market','city']:/درمان|بیمار|سلامت/.test(lower)?['hospital']:/تجارت|بازار|فروش/.test(lower)?['market']:/ساخت|سازه|خانه|کارخانه/.test(lower)?['city','factory']:[];
+          const target=agentTarget(live,preferred.length?preferred:undefined);
+          live.targetX=target.x;live.targetY=target.y;
+          if(/غذا|خوراک/.test(lower))live.hunger=Math.max(10,live.hunger-12);
+          applied++;
+        }
+        if(applied){setAiStatus('هوش ابری فعال · '+applied+' ایجنت همین حالا تصمیم گرفتند');setEventText('تصمیم‌های ابری اجرا شد؛ '+applied+' ایجنت مسیر یا فعالیت بعدی خود را انتخاب کردند');}
+      }catch{
+        if(active)setAiStatus('هوش ابری موقتاً پاسخ نداد؛ تلاش دوباره ادامه دارد');
+      }finally{cloudBatchBusy.current=false;}
+    };
+    const first=window.setTimeout(()=>void cloudThinkBatch(),8000);
+    const timer=window.setInterval(()=>void cloudThinkBatch(),40000);
+    return()=>{active=false;window.clearTimeout(first);window.clearInterval(timer);};
+  },[entered]);
 
   const sendChat=async()=>{
     if(!selected||!chatInput.trim()||chatBusy)return;
