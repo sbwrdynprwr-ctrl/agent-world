@@ -306,6 +306,15 @@ function buildWorld(px:number,pz:number,constructionProgress:number,construction
     model.userData.simulatedAgent=true;
   }
   addConstruction(root,constructionX,constructionY,constructionProgress/100,constructionName);
+  // Cache only objects that need per-frame updates. Traversing every building,
+  // window and tree on every animation frame is expensive on mobile devices.
+  const animated:THREE.Group[]=[];
+  root.traverse(o=>{
+    const g=o as THREE.Group;
+    const u=g.userData||{};
+    if(u.isConstruction||u.agentId||u.axis||u.arms&&u.legs) animated.push(g);
+  });
+  root.userData.animated=animated;
   return root;
 }
 
@@ -467,8 +476,8 @@ export default function CinematicWorld({playerX,playerY,angle,onMoveTarget,time,
           sun.position.set(Math.cos(s.time/24*Math.PI*2)*420,260+daylight*420,Math.sin(s.time/24*Math.PI*2)*340);
           cityGlow.intensity=.8+(1-daylight)*7;
 
-          world.traverse(o=>{
-            const g=o as THREE.Group;
+          const animated=world.userData.animated as THREE.Group[]|undefined;
+          (animated||[]).forEach(g=>{
             if(g.userData?.isConstruction){g.position.x=s.constructionX;g.position.z=s.constructionY;g.visible=s.constructionProgress>0;g.children.forEach(child=>{if(child.userData.buildStage!==undefined)child.visible=s.constructionProgress/100>=child.userData.buildStage;});}
             const u=g.userData||{};
             if(u.agentId){
