@@ -603,7 +603,16 @@ function App() {
 
   const handleMoveTarget=(target:{x:number;y:number})=>{moveTarget.current=target;setEventText('مقصد مشخص شد؛ مسیر امن در حال پیمایش است');};
   const turn=(dir:number)=>setPlayer(p=>({...p,angle:p.angle+dir*.12}));
-  const move=(f:number,s:number)=>setPlayer(p=>({...p,x:p.x+Math.cos(p.angle)*f-Math.sin(p.angle)*s,y:p.y+Math.sin(p.angle)*f+Math.cos(p.angle)*s}));
+  const move=(f:number,s:number)=>setPlayer(p=>{
+    // The on-screen movement buttons must obey the same obstacle checks as keyboard movement.
+    const dx=Math.cos(p.angle)*f-Math.sin(p.angle)*s;
+    const dy=Math.sin(p.angle)*f+Math.cos(p.angle)*s;
+    const radius=driving?4.2:2.3;
+    const blocked=(x:number,y:number)=>isBuildingBlocked(x,y,p.x,p.y,radius)||isCarBlocked(x,y,radius);
+    const safeX=blocked(p.x+dx,p.y)?p.x:p.x+dx;
+    const safeY=blocked(safeX,p.y+dy)?p.y:p.y+dy;
+    return {...p,x:safeX,y:safeY};
+  });
   const nearest=useMemo(()=>{
     let best:Agent|null=null,bd=Infinity;
     agentsRef.current.forEach(a=>{const d=Math.hypot(a.x-player.x,a.y-player.y);if(d<bd){bd=d;best=a;}});
