@@ -135,7 +135,7 @@ function addCar(root:THREE.Group,x:number,z:number,seed:number,axis:'x'|'z'){
   box(g,.16,.18,.52,0x8deaff,2.9,.9,.7,glow(0x8deaff,2.8));
   g.position.set(x,.1,z);
   g.rotation.y=axis==='z'?Math.PI/2:0;
-  g.userData={phase:hash(seed,8)*6.28,speed:4+hash(seed,9)*3,axis,originX:x,originZ:z};
+  g.userData={phase:hash(seed,8)*6.28,speed:5+hash(seed,9)*2.5,axis,originX:x,originZ:z,wheels:g.children.filter(o=>o instanceof THREE.Mesh && (o.geometry as THREE.CylinderGeometry).type==='CylinderGeometry')};
   root.add(g);
 }
 
@@ -171,7 +171,7 @@ function addAgent(root:THREE.Group,x:number,z:number,seed:number,axis:'x'|'z'){
   const badge=box(g,.13,.2,.04,0x59eaff,0,1.2*s,-.31,glow(0x59eaff,2.2));
   badge.castShadow=false;
   g.position.set(x,0,z);
-  g.userData={phase:hash(seed,20)*6.28,speed:.45+hash(seed,21)*.35,axis,originX:x,originZ:z,arms:g.children.filter(o=>o.name.startsWith('arm')),legs:g.children.filter(o=>o.name.startsWith('leg'))};
+  g.userData={phase:hash(seed,20)*6.28,speed:1.25+hash(seed,21)*.35,axis,originX:x,originZ:z,arms:g.children.filter(o=>o.name.startsWith('arm')),legs:g.children.filter(o=>o.name.startsWith('leg'))};
   root.add(g);
 }
 
@@ -319,7 +319,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
     const init=()=>{
       try{
         renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,window.innerWidth<800?1.35:1.75));
         renderer.setSize(host.clientWidth||window.innerWidth,host.clientHeight||window.innerHeight,false);
         renderer.setClearColor(0x78a9b7,1);
         renderer.outputColorSpace=THREE.SRGBColorSpace;
@@ -327,6 +327,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
         renderer.toneMappingExposure=1.5;
         renderer.shadowMap.enabled=true;
         renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+        renderer.toneMappingExposure=1.22;
         renderer.info.autoReset=true;
         renderer.domElement.className='cinematic-canvas';
         renderer.domElement.style.touchAction='none';
@@ -341,7 +342,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
         const sun=new THREE.DirectionalLight(0xfff3dc,7.4);
         sun.position.set(-260,420,220);
         sun.castShadow=true;
-        sun.shadow.mapSize.set(3072,3072);
+        sun.shadow.mapSize.set(window.innerWidth<800?1024:2048,window.innerWidth<800?1024:2048);
         sun.shadow.camera.near=1;
         sun.shadow.camera.far=1400;
         sun.shadow.camera.left=-500;
@@ -452,7 +453,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
               u.legs[1].rotation.x=-stride*.42;
               u.arms[0].rotation.x=-stride*.24;
               u.arms[1].rotation.x=stride*.24;
-              const travel=Math.sin(t*.16)*18;
+              const travel=Math.sin(t*.42)*31;
               if(u.axis==='x'){
                 g.position.x=u.originX+travel;
                 g.position.z=u.originZ;
@@ -464,9 +465,10 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
               }
             }else if(u.axis){
               const t=now*.001*u.speed+u.phase;
-              const travel=Math.sin(t)*55;
+              const travel=Math.sin(t)*48;
               if(u.axis==='x')g.position.x=u.originX+travel;
               else g.position.z=u.originZ+travel;
+              if(u.wheels){for(const wheel of u.wheels as THREE.Object3D[]) wheel.rotation.x+=0.035*u.speed;}
             }
           });
 
