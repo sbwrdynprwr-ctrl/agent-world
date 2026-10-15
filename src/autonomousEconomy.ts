@@ -146,7 +146,7 @@ export function runEconomyTick(agents: EconomyAgent[], previous: EconomyStock): 
   const hungryRatio = next.length ? hungryCount / next.length : 0;
   const exhaustedRatio = next.length ? exhaustedCount / next.length : 0;
 
-  if (stock.food < 10) events.push('بحران غذا: ذخیره بسیار کم است؛ تولید و مبادله غذا را در اولویت بگذارید.');
+  if (stock.food < 10) events.push('برنامه فوری شهر: بحران غذا؛ تولید و مبادله غذا باید اولویت نخست باشد.');
   else if (stock.food < foodTarget) events.push('هشدار غذا: ذخیره زیر سطح هدف است؛ کشاورزان و ماهیگیران باید تولید را افزایش دهند.');
   if (stock.medicine < medicineTarget) events.push('هشدار درمان: ذخیره دارو کمتر از نیاز تخمینی شهر است.');
   if (stock.materials < materialTarget) events.push('هشدار ساخت‌وساز: مصالح برای پروژه‌های آینده کم است.');
