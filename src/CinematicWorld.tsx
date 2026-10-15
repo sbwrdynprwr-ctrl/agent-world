@@ -138,7 +138,7 @@ function addCar(root:THREE.Group,x:number,z:number,seed:number,axis:'x'|'z'){
   box(g,.12,.16,.38,0xe4483f,-2.92,.9,.68,glow(0xe4483f,.55));
   g.position.set(x,.1,z);
   g.rotation.y=axis==='z'?Math.PI/2:0;
-  g.userData={phase:hash(seed,8),speed:5+hash(seed,9)*2.5,direction:hash(seed,10)>.5?1:-1,axis,originX:x,originZ:z,wheels:g.children.filter(o=>o instanceof THREE.Mesh && (o.geometry as THREE.CylinderGeometry).type==='CylinderGeometry')};
+  g.userData={phase:hash(seed,8)*90,speed:3.8+hash(seed,9)*1.6,direction:hash(seed,10)>.5?1:-1,axis,originX:x,originZ:z,wheels:g.children.filter(o=>o instanceof THREE.Mesh && (o.geometry as THREE.CylinderGeometry).type==='CylinderGeometry')};
   root.add(g);
 }
 
@@ -508,7 +508,7 @@ export default function CinematicWorld({playerX,playerY,angle,onMoveTarget,time,
               // Keep each vehicle in its lane and moving in one direction instead of
               // reversing at every sine-wave peak. The short loop is deterministic.
               const direction=u.direction===-1?-1:1;
-              const distance=((now*.001*u.speed*direction+(u.phase||0)*50+25)%50+50)%50-25;
+              const distance=((now*.001*u.speed*direction+(u.phase||0)+45)%90+90)%90-45;
               const forward=direction>0;
               if(u.axis==='x'){
                 g.position.x=u.originX+distance;
