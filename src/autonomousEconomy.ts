@@ -86,7 +86,7 @@ export function runEconomyTick(agents: EconomyAgent[], previous: EconomyStock): 
         agent.activity = 'جست‌وجوی معامله سودمند در بازار';
       }
     } else {
-      stock[task.product] += task.amount;
+      stock[task.product] += task.amount * (task.product === 'food' && stock.food < Math.max(25, next.length * 0.35) ? 1.8 : 1);
     }
 
     if (stock.food > 0 && agent.hunger > 25) {
