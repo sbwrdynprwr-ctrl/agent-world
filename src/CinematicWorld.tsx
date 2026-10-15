@@ -287,7 +287,7 @@ function buildWorld(px:number,pz:number,constructionProgress:number,construction
         if(Math.abs(tx-roadX)>17&&Math.abs(tz-roadZ)>17) addTree(root,tx,tz,.8+hash(seed,i+30)*1.3,seed+i);
       }
     }
-    const lane=(seed%2?-1:1)*3.25;
+    const lane=(seed%2?-1:1)*5.2;
     if(gz===0) addCar(root,baseX+(hash(seed,50)-.5)*34,roadZ+lane,seed+100,'x');
     if(gx===0) addCar(root,roadX+lane,baseZ+(hash(seed,40)-.5)*34,seed+101,'z');
     addLamp(root,baseX+(gx%2)*18,baseZ+(gz%2)*18,seed);
