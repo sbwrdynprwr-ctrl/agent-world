@@ -17,7 +17,7 @@ type Agent = {
   id:number; x:number; y:number; vx:number; vy:number; job:string; goal:string;
   mood:string; energy:number; wealth:number; generation:number; age:number;
   personality:string; activity:string; home:string; hunger:number; social:number;
-  intelligence:number; skills:string[]; partnerId?:number; children:number; reputation:number; vehicle:string;
+  intelligence:number; skills:string[]; partnerId?:number; children:number; reputation:number; vehicle:string; targetX?:number; targetY?:number;
 };
 type ChatMessage = { role:'user'|'assistant'; content:string };
 type Site = { x:number; y:number; kind:'city'|'farm'|'factory'|'hospital'|'market'|'park'; seed:number };
@@ -71,6 +71,12 @@ function siteAt(cx:number,cy:number): Site | null {
   return null;
 }
 function siteName(seed:number) { return ['نوران','آریا','سپهر','مهرگان','آفتاب','رودان','پارسا','آرمان','ساحل‌نو','دریاکنار'][seed % 10]; }
+function agentTarget(a:Agent,preferred?:Site['kind'][]){
+  const kinds=preferred|| (a.job==='کشاورز'?['farm']:a.job==='تاجر'?['market']:a.job==='پزشک'?['hospital']:a.job==='مهندس'||a.job==='معمار'||a.job==='سازنده'?['city','factory']:['park','market','city']);
+  const cx=Math.floor(a.x/CELL),cy=Math.floor(a.y/CELL);let best:Site|null=null,bd=Infinity;
+  for(let y=cy-4;y<=cy+4;y++)for(let x=cx-4;x<=cx+4;x++){const s=siteAt(x,y);if(!s||!kinds.includes(s.kind))continue;const d=Math.hypot(s.x-a.x,s.y-a.y);if(d<bd){bd=d;best=s;}}
+  return best?{x:best.x,y:best.y}:{x:a.x+(hash(a.id,Math.floor(a.x/40)+7)-.5)*100,y:a.y+(hash(a.id,Math.floor(a.y/40)+13)-.5)*100};
+}
 function siteLabel(kind:Site['kind']) {
   return {city:'شهر',farm:'مزرعه',factory:'کارخانه',market:'بازار',hospital:'بیمارستان',park:'پارک'}[kind];
 }
@@ -338,9 +344,16 @@ function App() {
         else if(a.social>82)a.mood='اجتماعی';
         if(a.hunger<55 && a.energy>35 && Math.random()<.3){a.wealth+=Math.max(0,Math.round((a.intelligence-70)*.02));}
         if(a.social>88 && a.reputation>65 && Math.random()<.004){a.children=Math.min(5,a.children+1);a.generation=Math.max(a.generation,2);}
-        // Lightweight autonomous movement around the current neighborhood.
-        if(!rallyTarget && Math.random()<.32){a.x+=a.vx*7+(Math.random()-.5)*3;a.y+=a.vy*7+(Math.random()-.5)*3;}
-        if(Math.random()<.08){a.vx=Math.max(-.6,Math.min(.6,a.vx+(Math.random()-.5)*.22));a.vy=Math.max(-.6,Math.min(.6,a.vy+(Math.random()-.5)*.22));}
+        // Agents now travel toward real simulated destinations instead of only jittering in place.
+        if(!rallyTarget && Number.isFinite(a.targetX) && Number.isFinite(a.targetY)){
+          const dx=(a.targetX as number)-a.x,dy=(a.targetY as number)-a.y,d=Math.hypot(dx,dy);
+          if(d>9){a.vx=dx/d*.42;a.vy=dy/d*.42;a.x+=a.vx*5.5;a.y+=a.vy*5.5;}
+          else{a.x=a.targetX as number;a.y=a.targetY as number;a.vx=0;a.vy=0;a.targetX=undefined;a.targetY=undefined;if(a.activity.includes('مسیر'))a.activity='در حال انجام وظیفه شغلی';}
+        }else if(!rallyTarget && Math.random()<.24){
+          if(Math.hypot(a.vx,a.vy)<.04){const t=agentTarget(a);a.targetX=t.x;a.targetY=t.y;a.activity='در مسیر '+(a.job==='کشاورز'?'مزرعه':a.job==='تاجر'?'بازار':'مقصد کاری');}
+          a.x+=a.vx*6+(Math.random()-.5)*.8;a.y+=a.vy*6+(Math.random()-.5)*.8;
+        }
+        if(Math.random()<.05 && !Number.isFinite(a.targetX)){const t=agentTarget(a);a.targetX=t.x;a.targetY=t.y;}
       });
       setEconomy(e=>Math.max(60,Math.min(100,e+economyDelta)));
       if(visibleEvent)setEventText(visibleEvent);
@@ -595,7 +608,14 @@ function App() {
       setDecision(action+' · '+String(d.destination||'مقصد نامشخص')+' · '+mode);
       setSelected(a=>a?({...a,activity:action,mood:String(d.mood||a.mood),goal:String(d.socialIntent||a.goal),social:Math.min(100,Math.max(0,a.social+Number(d.expectedReward||0)))}):a);
       const liveAgent=agentsRef.current.find(a=>a.id===agentForThink.id);
-      if(liveAgent){liveAgent.activity=action;liveAgent.mood=String(d.mood||liveAgent.mood);liveAgent.goal=String(d.socialIntent||liveAgent.goal);liveAgent.social=Math.min(100,Math.max(0,liveAgent.social+Number(d.expectedReward||0)));}
+      if(liveAgent){
+        liveAgent.activity=action;liveAgent.mood=String(d.mood||liveAgent.mood);liveAgent.goal=String(d.socialIntent||liveAgent.goal);liveAgent.social=Math.min(100,Math.max(0,liveAgent.social+Number(d.expectedReward||0)));
+        const lower=action.toLowerCase();
+        const preferred:Site['kind'][]=/غذا|خوراک|مزرعه/.test(lower)?['farm','market']:/گفت.?وگو|دوست|اجتماع/.test(lower)?['park','market','city']:/درمان|بیمار|سلامت/.test(lower)?['hospital']:/تجارت|بازار|فروش/.test(lower)?['market']:/ساخت|سازه|خانه/.test(lower)?['city','factory']:[];
+        const target=agentTarget(liveAgent,preferred.length?preferred:undefined);liveAgent.targetX=target.x;liveAgent.targetY=target.y;
+        if(/غذا|خوراک/.test(lower))liveAgent.hunger=Math.max(10,liveAgent.hunger-18);
+        if(/گفت.?وگو|دوست|اجتماع/.test(lower))liveAgent.social=Math.min(100,liveAgent.social+8);
+      }
       setEventText('Agent #'+agentForThink.id+' تصمیم گرفت: '+action);
       setAiStatus(mode);
       void api.post('/api/agent/memory',{agentId:agentForThink.id,memory:'تصمیم: '+action+'؛ دلیل: '+String(d.reason||'')+'؛ مقصد: '+String(d.destination||''),importance:65}).then(()=>setMemoryCount(c=>c+1)).catch(()=>undefined);
@@ -655,7 +675,7 @@ function App() {
   </main>;
 
   return <main className='world-shell'>
-    <CinematicWorld playerX={player.x} playerY={player.y} angle={player.angle} time={time} constructionProgress={construction.progress} constructionX={construction.x} constructionY={construction.y} constructionName={construction.name} onLook={delta=>setPlayer(p=>({...p,angle:p.angle+delta}))} />
+    <CinematicWorld playerX={player.x} playerY={player.y} angle={player.angle} time={time} constructionProgress={construction.progress} constructionX={construction.x} constructionY={construction.y} constructionName={construction.name} agents={agentsRef.current.map(a=>({id:a.id,x:a.x,y:a.y,vx:a.vx,vy:a.vy,activity:a.activity,mood:a.mood,job:a.job}))} onLook={delta=>setPlayer(p=>({...p,angle:p.angle+delta}))} />
     <canvas ref={canvasRef} className='world-canvas' onPointerDown={e=>{if(e.clientX>innerWidth*.42){lookTouch.current={active:true,lastX:e.clientX,lastY:e.clientY};e.currentTarget.setPointerCapture(e.pointerId);}}} onPointerMove={e=>{if(!lookTouch.current.active)return;const dx=e.clientX-lookTouch.current.lastX;setPlayer(p=>({...p,angle:p.angle+dx*.006}));lookTouch.current.lastX=e.clientX;lookTouch.current.lastY=e.clientY;}} onPointerUp={e=>{lookTouch.current.active=false;if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>{lookTouch.current.active=false;}} />
     <canvas ref={premiumCanvasRef} className='premium-canvas' aria-hidden='true' />\n    <header className='hud topbar'><div className='brand'><div className='brand-mark'><Globe2 size={20}/></div><div><b>AGENT WORLD</b><span>یک تمدن زنده که خودش ادامه پیدا می‌کند</span></div></div><div className='stats'><span><Users/> {population.toLocaleString('fa-IR')}<small>جمعیت</small></span><span><Building2/> {nearbySites.filter(s=>s.kind==='city').length}<small>شهر نزدیک</small></span><span><Coins/> {Math.round(economy)}%<small>اقتصاد</small></span><span><BrainCircuit/> 220<small>Agent هوشمند</small></span></div><div className='top-actions'><button className='summon-btn' onClick={summonAllAgents}><Users/> همه Agentها</button><button className='map-btn' onClick={()=>setWorldMapOpen(v=>!v)}><Globe2/> کره جهان</button><button className='hud-toggle' onClick={()=>setHudOpen(v=>!v)} aria-label='نمایش کنترل‌ها'><SlidersHorizontal/> {hudOpen?'بستن پنل‌ها':'کنترل‌ها'}</button></div></header>
     {hudOpen&&construction.progress>0&&<section className='hud construction-panel'><div><b>🏗️ پروژه ساخت: {construction.name}</b><span>{construction.active?'ایجنت‌ها در حال همکاری هستند':'پروژه تکمیل شده'}</span></div><strong>{Math.floor(construction.progress).toLocaleString('fa-IR')}٪</strong><div className='construction-track'><i style={{width:construction.progress+'%'}}/></div><small>مصالح: چوب {Math.floor(construction.materials.wood)} · فولاد {Math.floor(construction.materials.steel)} · سنگ {Math.floor(construction.materials.stone)}</small><small>ابتدا مصالح جمع‌آوری می‌شود؛ سپس تیم ساخت را پیش می‌برد.</small></section>}
