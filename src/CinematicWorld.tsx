@@ -474,7 +474,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
                 g.position.z=u.originZ+travel;
                 g.rotation.y=forward?-Math.PI/2:Math.PI/2;
               }
-              if(u.wheels){for(const wheel of u.wheels as THREE.Object3D[]) wheel.rotation.z+=0.035*u.speed;}
+              if(u.wheels){const roll=0.035*u.speed*(forward?1:-1);for(const wheel of u.wheels as THREE.Object3D[]){if(u.axis==='x')wheel.rotation.z+=roll;else wheel.rotation.x+=roll;}}
             }
           });
 
