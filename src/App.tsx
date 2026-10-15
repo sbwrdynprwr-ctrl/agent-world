@@ -138,6 +138,8 @@ function App() {
   const [labels,setLabels] = useState(true);
   const [run,setRun] = useState(false);
   const [eventText,setEventText] = useState('یک شهرک جدید در حال توسعه است');
+  const [socialFeed,setSocialFeed] = useState<{id:number;line:string;time:number}[]>([]);
+  const socialSequence = useRef(0);
   const [chatOpen,setChatOpen] = useState(false);
   const [chatInput,setChatInput] = useState('');
   const [chatBusy,setChatBusy] = useState(false);
@@ -347,6 +349,59 @@ function App() {
     const first = window.setTimeout(planCivilization, 5000);
     return () => { window.clearInterval(timer); window.clearTimeout(first); };
   }, [entered, construction.active, economy, population, player.x, player.y]);
+
+  // Agents initiate ongoing peer conversations, exchange practical ideas, and form cooperation links.
+  // The dialogue is locally simulated from each character's job, needs, and personality.
+  useEffect(() => {
+    if (!entered) return;
+    const socialize = () => {
+      const residents = agentsRef.current;
+      if (residents.length < 2) return;
+      const needy = residents.filter(a => a.social < 68 || a.mood === 'نگران' || a.mood === 'خسته');
+      const first = needy.length ? needy[Math.floor(Math.random() * needy.length)] : residents[Math.floor(Math.random() * residents.length)];
+      let second = residents.filter(a => a.id !== first.id).sort((a,b) =>
+        Math.hypot(a.x-first.x,a.y-first.y) - Math.hypot(b.x-first.x,b.y-first.y)
+      )[0];
+      if (!second) return;
+      const pair = [first, second];
+      const jobIdeas: Record<string,string> = {
+        'کشاورز':'اگر کشاورزان محصول را زودتر به بازار برسانند، ذخیره غذا بهتر می‌شود.',
+        'مهندس':'می‌توانیم مسیرهای رفت‌وآمد را بهتر کنیم تا منابع سریع‌تر جابه‌جا شوند.',
+        'پزشک':'سلامت مردم به غذا، استراحت و دسترسی به درمان وابسته است.',
+        'معمار':'بیایید ساختمان تازه را نزدیک مسیرهای امن و خدمات عمومی بسازیم.',
+        'سازنده':'برای شروع پروژه، اول باید مصالح را حساب کنیم و تیم را هماهنگ کنیم.',
+        'تاجر':'اگر کالاهای ضروری را اولویت بدهیم، بازار متعادل‌تر می‌شود.',
+        'پژوهشگر':'من نتیجه کارهای قبلی را بررسی می‌کنم تا دفعه بعد بهتر تصمیم بگیریم.',
+        'برنامه‌نویس':'می‌توانیم اطلاعات انبار و نیازهای شهر را برای تصمیم بهتر کنار هم بگذاریم.',
+        'معلم':'اگر مهارت‌ها را به هم آموزش بدهیم، کل جامعه قوی‌تر می‌شود.',
+        'راننده':'من می‌توانم حمل غذا و مصالح را بین محل کار و بازار هماهنگ کنم.',
+        'هنرمند':'یک رویداد جمعی می‌تواند روحیه مردم را بهتر کند.',
+        'ماهیگیر':'اگر صید را با نیاز بازار هماهنگ کنیم، غذا هدر نمی‌رود.'
+      };
+      const line = names[(first.id-1)%names.length] + ' (' + first.job + '): «' +
+        (jobIdeas[first.job] || 'بیایید نیازهای محله را بررسی کنیم و با هم راه‌حل پیدا کنیم.') + '» — ' +
+        names[(second.id-1)%names.length] + ' (' + second.job + '): «من کمک می‌کنم؛ از همین حالا کارمان را هماهنگ می‌کنیم.»';
+      first.activity = 'گفت‌وگو و برنامه‌ریزی با Agent #' + second.id;
+      second.activity = 'گفت‌وگو و برنامه‌ریزی با Agent #' + first.id;
+      first.social = Math.min(100, first.social + 8);
+      second.social = Math.min(100, second.social + 7);
+      first.mood = first.social > 55 ? 'اجتماعی' : 'آرام';
+      second.mood = 'اجتماعی';
+      if (!first.skills.includes('همکاری تیمی')) first.skills.push('همکاری تیمی');
+      if (!second.skills.includes('همکاری تیمی')) second.skills.push('همکاری تیمی');
+      first.goal = 'همکاری با ' + names[(second.id-1)%names.length] + ' برای پیشرفت جامعه';
+      second.goal = 'همکاری با ' + names[(first.id-1)%names.length] + ' برای پیشرفت جامعه';
+      const midpoint = { x:(first.x+second.x)/2, y:(first.y+second.y)/2 };
+      first.targetX = midpoint.x; first.targetY = midpoint.y;
+      second.targetX = midpoint.x; second.targetY = midpoint.y;
+      socialSequence.current += 1;
+      setSocialFeed(prev => [{id:socialSequence.current,line,time:Date.now()}, ...prev].slice(0,5));
+      setEventText('💬 گفت‌وگوی خودجوش: ' + names[(first.id-1)%names.length] + ' و ' + names[(second.id-1)%names.length] + ' درباره همکاری و پیشرفت شهر صحبت می‌کنند.');
+    };
+    const firstTimer = window.setTimeout(socialize, 6500);
+    const timer = window.setInterval(socialize, 11000);
+    return () => { window.clearTimeout(firstTimer); window.clearInterval(timer); };
+  }, [entered]);
 
   useEffect(()=>{
     const id=setInterval(()=>{
@@ -640,6 +695,10 @@ function App() {
     {hudOpen && <aside className='hud minimap'><h3><Map/> نقشه</h3><div className='map-world'><div className='map-ocean'/>{nearbySites.filter(s=>s.kind==='city').map(s=><i key={s.seed} style={{left:(50+(s.x-player.x)/40)+'%',top:(50+(s.y-player.y)/40)+'%'}}/>)}<b/></div><small>جهان رویه‌ای · قابل گسترش</small></aside>}
     {hudOpen && <div className='hud activity'><Radio/> <span>فید زنده</span><b>{eventText}</b></div>}
     {selected&&<aside className='hud agent-card'><button className='close' onClick={()=>{setSelected(null);setChatOpen(false);}}><X/></button><div className='agent-avatar'>{selected.id%10}</div><h3>{names[(selected.id-1)%names.length]} · Agent #{selected.id}</h3><span>{selected.job} · {selected.mood}</span><p>هدف: <b>{selected.goal}</b></p><p>شخصیت: <b>{selected.personality}</b></p><p>فعالیت: <b>{selected.activity}</b></p><p>سن / نسل: <b>{selected.age} / {selected.generation}</b></p><p>خانواده: <b>{selected.children} فرزند · {selected.partnerId?'رابطه فعال':'مجرد'}</b></p><p>وسیله: <b>{selected.vehicle}</b></p><p>اعتبار: <b>{selected.reputation}%</b></p><p>ثروت: <b>{selected.wealth.toLocaleString('fa-IR')}</b></p><div className='brain-row'><span><BrainCircuit/> هوش {selected.intelligence}%</span><span><Heart/> اجتماعی {Math.round(selected.social)}%</span></div><div className='meter'><i style={{width:Math.max(8,selected.intelligence)+'%'}}/></div><div className='agent-actions'><button className='talk-btn' onClick={()=>setChatOpen(true)}><MessageCircle/> گفت‌وگو</button><button className='think-btn' onClick={()=>void thinkAgent()}><Zap/> تصمیم هوشمند</button></div><small className='decision-text'>{decision} · {memoryCount} خاطره ثبت‌شده</small></aside>}
+    {entered&&socialFeed.length>0&&<section className='hud social-feed' style={{position:'absolute',left:16,bottom:92,zIndex:8,width:'min(360px,calc(100vw - 32px))',maxHeight:210,overflowY:'auto',padding:12,borderRadius:16,background:'rgba(10,20,30,.88)',border:'1px solid rgba(120,210,220,.3)',color:'#eef8ff',backdropFilter:'blur(12px)'}}>
+      <header style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}><MessageCircle size={18}/><b>گفت‌وگوهای زنده Agentها</b><span style={{marginRight:'auto',fontSize:11,opacity:.75}}>شبیه‌سازی اجتماعی</span></header>
+      {socialFeed.map(item=><div key={item.id} style={{fontSize:12,lineHeight:1.8,padding:'8px 0',borderTop:'1px solid rgba(255,255,255,.1)'}}>{item.line}</div>)}
+    </section>}
     {chatOpen&&selected&&<section className='hud chat-panel'><header><div><MessageCircle/><div><b>گفت‌وگو با {names[(selected.id-1)%names.length]}</b><small>{aiStatus} · Agent #{selected.id} · حافظه فعال</small></div></div><button onClick={()=>setChatOpen(false)}><X/></button></header><div className='chat-body'>{chat.length===0&&<div className='chat-welcome'><BrainCircuit/><b>ذهن {names[(selected.id-1)%names.length]} آماده است</b><span>درباره زندگی، کار، شهر، هدف‌ها یا اتفاقات جهان سؤال کن.</span><div className='chat-suggestions'>{['سلام، حالت چطوره؟','امروز چه برنامه‌ای داری؟','می‌توانی کمکم کنی؟'].map(q=><button key={q} onClick={()=>setChatInput(q)}>{q}</button>)}</div></div>}{chat.map((m,i)=><div className={'bubble '+m.role} key={i}>{m.content}</div>)}{chatBusy&&<div className='bubble assistant thinking'><Sparkles/> در حال فکر کردن…</div>}</div><div className='chat-input'><input value={chatInput} onChange={e=>setChatInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')void sendChat();}} placeholder='پیامت را بنویس…'/><button onClick={()=>void sendChat()} disabled={chatBusy||!chatInput.trim()}><Send/></button></div></section>}
     <div className='mobile-joystick' onPointerDown={e=>{touch.current.active=true;touch.current.startX=e.clientX;touch.current.startY=e.clientY;e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(!touch.current.active)return;const max=54;const dx=Math.max(-max,Math.min(max,e.clientX-touch.current.startX));const dy=Math.max(-max,Math.min(max,e.clientY-touch.current.startY));touch.current.x=dx/max;touch.current.y=dy/max;}} onPointerUp={e=>{touch.current.active=false;touch.current.x=0;touch.current.y=0;if(e.currentTarget.hasPointerCapture(e.pointerId))e.currentTarget.releasePointerCapture(e.pointerId);}} onPointerCancel={()=>{touch.current.active=false;touch.current.x=0;touch.current.y=0;}}><div className='joystick-knob' style={{transform:`translate(${touch.current.x*42}px,${touch.current.y*42}px)`}}/></div><div className='camera-zone'><span>برای چرخاندن دوربین بکش</span></div><section className='controls'><button className='move-up' onClick={()=>move(55,0)}><ChevronUp/></button><div><button onClick={()=>turn(-1)}><ChevronLeft/></button><button onClick={()=>move(-45,0)}><ChevronDown/></button><button onClick={()=>turn(1)}><ChevronRight/></button></div></section>
     <div className='hud hint'><span>{time>6&&time<18?<Sun size={14}/>:<Moon size={14}/>}</span> WASD حرکت · A/D حرکت جانبی · ←/→ چرخش · E انتخاب Agent · F گفت‌وگو · خودرو: رانندگی · نزدیک مزرعه: کشاورزی</div>
