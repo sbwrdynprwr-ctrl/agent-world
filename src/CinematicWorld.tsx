@@ -1,7 +1,8 @@
 import {useEffect,useRef} from 'react';
 import * as THREE from 'three';
 
-type Props={playerX:number;playerY:number;angle:number;time:number;constructionProgress:number;constructionX:number;constructionY:number;constructionName:string;onLook:(delta:number)=>void};
+type AgentVisual={id:number;x:number;y:number;vx:number;vy:number;activity:string;mood:string;job:string};
+type Props={playerX:number;playerY:number;angle:number;time:number;constructionProgress:number;constructionX:number;constructionY:number;constructionName:string;agents:AgentVisual[];onLook:(delta:number)=>void};
 
 const CELL=180;
 const RANGE=2;
@@ -236,7 +237,7 @@ function addConstruction(root:THREE.Group,x:number,z:number,progress:number,name
   site.visible=progress>0;
   root.add(site);
 }
-function buildWorld(px:number,pz:number,constructionProgress:number,constructionX:number,constructionY:number,constructionName:string){
+function buildWorld(px:number,pz:number,constructionProgress:number,constructionX:number,constructionY:number,constructionName:string,agents:AgentVisual[]){
   const root=new THREE.Group();
   const size=CELL*(RANGE*2+1);
   const groundGeo=new THREE.PlaneGeometry(size,size,96,96);
@@ -292,23 +293,22 @@ function buildWorld(px:number,pz:number,constructionProgress:number,construction
     const tz=pz+(hash(i,330)-.5)*700;
     if(Math.abs(tx-roadX)>32&&Math.abs(tz-roadZ)>32) addTower(root,tx,tz,900+i);
   }
-  for(let i=0;i<55;i++){
-    const axis=i%2===0?'z':'x';
-    const side=hash(i,91)>.5?1:-1;
-    const along=(hash(i,90)-.5)*(WORLD_SIZE-70);
-    const ax=axis==='z'?roadX+side*10.4:along;
-    const az=axis==='z'?along:roadZ+side*10.4;
-    addAgent(root,ax,az,i+1000,axis);
+  const nearbyAgents=agents.filter(a=>Math.abs(a.x-px)<WORLD_SIZE*.52&&Math.abs(a.y-pz)<WORLD_SIZE*.52).slice(0,70);
+  for(const a of nearbyAgents){
+    addAgent(root,a.x,a.y,a.id,'x');
+    const model=root.children[root.children.length-1] as THREE.Group;
+    model.userData.agentId=a.id;
+    model.userData.simulatedAgent=true;
   }
   addConstruction(root,constructionX,constructionY,constructionProgress/100,constructionName);
   return root;
 }
 
-export default function CinematicWorld({playerX,playerY,angle,time,constructionProgress,constructionX,constructionY,constructionName,onLook}:Props){
+export default function CinematicWorld({playerX,playerY,angle,time,constructionProgress,constructionX,constructionY,constructionName,agents,onLook}:Props){
   const hostRef=useRef<HTMLDivElement>(null);
-  const latest=useRef({playerX,playerY,angle,time,constructionProgress,constructionX,constructionY,constructionName});
+  const latest=useRef({playerX,playerY,angle,time,constructionProgress,constructionX,constructionY,constructionName,agents});
   const look=useRef({active:false,lastX:0});
-  latest.current={playerX,playerY,angle,time,constructionProgress,constructionX,constructionY,constructionName};
+  latest.current={playerX,playerY,angle,time,constructionProgress,constructionX,constructionY,constructionName,agents};
 
   useEffect(()=>{
     let alive=true;
@@ -377,7 +377,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
         }
         camera.add(hands);
 
-        world=buildWorld(latest.current.playerX,latest.current.playerY,latest.current.constructionProgress,latest.current.constructionX,latest.current.constructionY,latest.current.constructionName);
+        world=buildWorld(latest.current.playerX,latest.current.playerY,latest.current.constructionProgress,latest.current.constructionX,latest.current.constructionY,latest.current.constructionName,latest.current.agents);
         scene.add(world);
 
         const resize=()=>{
@@ -427,7 +427,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
               if(Array.isArray(m.material))m.material.forEach(v=>v.dispose());
               else if(m.material)m.material.dispose();
             });
-            world=buildWorld(s.playerX,s.playerY,s.constructionProgress,s.constructionX,s.constructionY,s.constructionName);
+            world=buildWorld(s.playerX,s.playerY,s.constructionProgress,s.constructionX,s.constructionY,s.constructionName,s.agents);
             scene.add(world);
             cellX=nx;
             cellZ=nz;
@@ -449,7 +449,13 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
             const g=o as THREE.Group;
             if(g.userData?.isConstruction){g.position.x=s.constructionX;g.position.z=s.constructionY;g.visible=s.constructionProgress>0;g.children.forEach(child=>{if(child.userData.buildStage!==undefined)child.visible=s.constructionProgress/100>=child.userData.buildStage;});}
             const u=g.userData||{};
-            if(u.arms&&u.legs){
+            if(u.agentId){
+              const a=s.agents.find(v=>v.id===u.agentId);
+              if(a){g.position.set(a.x,0,a.y);if(Math.hypot(a.vx,a.vy)>.025)g.rotation.y=Math.atan2(a.vx,-a.vy);}
+              const t=now*.0018*u.speed+u.phase;
+              const stride=Math.sin(t)*(a&&Math.hypot(a.vx,a.vy)>.025?1:.18);
+              u.legs[0].rotation.x=stride*.42;u.legs[1].rotation.x=-stride*.42;u.arms[0].rotation.x=-stride*.24;u.arms[1].rotation.x=stride*.24;
+            }else if(u.arms&&u.legs){
               const t=now*.0018*u.speed+u.phase;
               const stride=Math.sin(t);
               u.legs[0].rotation.x=stride*.42;
