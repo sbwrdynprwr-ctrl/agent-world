@@ -136,11 +136,27 @@ export function runEconomyTick(agents: EconomyAgent[], previous: EconomyStock): 
     stock[key] = Math.max(0, Math.min(999999, Math.round(stock[key] * 100) / 100));
   });
 
-  if (stock.food < 10) events.push('هشدار بازار: ذخیره غذا کم است؛ کشاورزان و ماهیگیران باید تولید را افزایش دهند.');
-  if (stock.materials >= 20 && stock.tools >= 10) events.push('منابع کافی برای آغاز یک پروژه ساختمانی فراهم شده است.');
-  if (stock.medicine < 5) events.push('نیاز به تولید دارو و تقویت خدمات درمانی وجود دارد.');
-  if (next.length > 0 && next.filter(a => a.energy < 18).length >= Math.ceil(next.length * 0.6)) events.push('بخش زیادی از نیروی کار خسته است؛ استراحت جمعی لازم است.');
-  if (next.some(a => a.hunger > 75)) events.push('چند Agent گرسنه‌اند؛ بررسی ذخیره غذا و افزایش تولید لازم است.');
+  const foodTarget = Math.max(25, next.length * 0.35);
+  const medicineTarget = Math.max(8, next.length * 0.08);
+  const materialTarget = Math.max(12, next.length * 0.12);
+  const toolTarget = Math.max(10, next.length * 0.1);
+  const knowledgeTarget = Math.max(15, next.length * 0.12);
+  const hungryCount = next.filter(a => a.hunger > 75).length;
+  const exhaustedCount = next.filter(a => a.energy < 18).length;
+  const hungryRatio = next.length ? hungryCount / next.length : 0;
+  const exhaustedRatio = next.length ? exhaustedCount / next.length : 0;
+
+  if (stock.food < 10) events.push('بحران غذا: ذخیره بسیار کم است؛ تولید و مبادله غذا را در اولویت بگذارید.');
+  else if (stock.food < foodTarget) events.push('هشدار غذا: ذخیره زیر سطح هدف است؛ کشاورزان و ماهیگیران باید تولید را افزایش دهند.');
+  if (stock.medicine < medicineTarget) events.push('هشدار درمان: ذخیره دارو کمتر از نیاز تخمینی شهر است.');
+  if (stock.materials < materialTarget) events.push('هشدار ساخت‌وساز: مصالح برای پروژه‌های آینده کم است.');
+  if (stock.tools < toolTarget) events.push('هشدار زیرساخت: ابزار کافی برای تعمیرات و کار مهندسان وجود ندارد.');
+  if (stock.knowledge < knowledgeTarget) events.push('هشدار آموزش و پژوهش: ذخیره دانش پایین‌تر از هدف شهر است.');
+  if (stock.materials >= 20 && stock.tools >= 10) events.push('فرصت توسعه: منابع کافی برای آغاز یک پروژه ساختمانی فراهم شده است.');
+  if (exhaustedRatio >= 0.6) events.push('هشدار نیروی کار: بیش از ۶۰٪ ایجنت‌ها کم‌انرژی‌اند؛ استراحت و بازیابی را در اولویت بگذارید.');
+  else if (exhaustedRatio >= 0.3) events.push('خستگی رو به افزایش است؛ زمان‌بندی کار و استراحت را متعادل کنید.');
+  if (hungryRatio >= 0.4) events.push('هشدار رفاه: دست‌کم ۴۰٪ ایجنت‌ها گرسنه‌اند؛ ذخیره غذا و توزیع آن را بررسی کنید.');
+  else if (hungryCount > 0) events.push(`نیاز به پشتیبانی: ${hungryCount} ایجنت گرسنه‌اند.`);
 
   return { agents: next, stock, events, economyDelta };
 }
