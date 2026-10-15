@@ -661,6 +661,26 @@ function App() {
     // Natural-language command parser: commands typed in chat are executed in the world, not just answered.
     const q=userText.replace(/[ي]/g,'ی').replace(/[ك]/g,'ک').toLowerCase();
     let worldCommand='';
+    // Individual assignment commands are applied to the currently selected agent.
+    let individualReply='';
+    if(/^(تو |شما )?(بیا|بیاین|بیایید|بیا پیش من|نزدیک من بیا|پیش من بیا)/.test(q)) {
+      const a=agentsRef.current.find(item=>item.id===agentForReply.id);
+      if(a){a.targetX=player.x+((a.id%3)-1)*18;a.targetY=player.y+((a.id%5)-2)*12;a.goal='آمدن پیش بازیکن';a.activity='در حال حرکت به سمت بازیکن';a.mood='متمرکز';individualReply='فرمان رسیدن به محل تو برای '+names[(a.id-1)%names.length]+' ثبت شد.';}
+    } else if(/(کشاورزی|مزرعه|محصول|برداشت)/.test(q)&&/(کن|برو|شروع|انجام|وظیفه)/.test(q)) {
+      const a=agentsRef.current.find(item=>item.id===agentForReply.id);
+      if(a){a.goal='کشاورزی و تولید غذا';a.activity='در حال انجام وظیفه کشاورزی';a.job='کشاورز';a.skills=Array.from(new Set([...a.skills,'کشاورزی']));individualReply='وظیفه کشاورزی به '+names[(a.id-1)%names.length]+' سپرده شد.';}
+    } else if(/(منابع|مصالح|چوب|سنگ|مواد اولیه)/.test(q)&&/(جمع|تهیه|پیدا|آور|کن|برو)/.test(q)) {
+      const a=agentsRef.current.find(item=>item.id===agentForReply.id);
+      if(a){a.goal='جمع‌آوری منابع';a.activity='در حال جست‌وجوی منابع';a.skills=Array.from(new Set([...a.skills,'مدیریت منابع']));individualReply='وظیفه جمع‌آوری منابع به '+names[(a.id-1)%names.length]+' سپرده شد.';}
+    } else if(/(بساز|ساخت|معماری|خانه|کارخانه)/.test(q)&&/(کن|شروع|انجام|برو|خانه|کارخانه|مزرعه)/.test(q)) {
+      const a=agentsRef.current.find(item=>item.id===agentForReply.id);
+      if(a){a.goal='کمک به ساخت‌وساز';a.activity='در حال آماده‌سازی برای ساخت';a.job='سازنده';individualReply='وظیفه ساخت‌وساز به '+names[(a.id-1)%names.length]+' سپرده شد. برای شروع پروژهٔ واقعی، مصالح و فرمان ساخت گروهی را هم بررسی کن.';}
+    }
+    if(individualReply){
+      setChat(v=>[...v,{role:'assistant',content:'✅ '+individualReply}]);
+      setAiStatus('وظیفه فردی ثبت شد');
+      return;
+    }
     if(/همه.{0,12}(بیاین|بیایید|بیان|جمع|نزدیک من|کنار من)|بیاین پیش من|بیایید پیش من|جمع شوین|جمع شوید/.test(q)) worldCommand='همه بیایند';
     else if(/دنبال من|پشت سر من|همراهم بیاین|همراه من/.test(q)) worldCommand='دنبال من بیایید';
     else if(/همین جا|همینجا|کنار من بمان|سر جایتان|اینجا بمان/.test(q)) worldCommand='کنار من بمانید';
