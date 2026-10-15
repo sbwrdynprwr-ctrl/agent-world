@@ -117,8 +117,17 @@ app.post('/api/agent/think', async (req, res) => {
   } catch (err) {
     console.error('Cloud AI decision unavailable; using local fallback:', err.message);
   }
-  const action = Number(a.hunger || 0) > 70 ? 'غذا پیدا کن' : Number(a.social || 0) < 30 ? 'با یک Agent گفت‌وگو کن' : 'برای هدف خود کار کن';
-  res.json({ decision: { action, reason: 'تصمیم پایه بر اساس نیازهای ثبت‌شده شخصیت', destination: a.home || 'نزدیک‌ترین محل امن', mood: a.mood || 'آرام', socialIntent: 'تعامل با جامعه', expectedReward: 1 }, steps: 1, mode: 'local-simulation' });
+  const hunger=Number(a.hunger||0),energy=Number(a.energy||0),social=Number(a.social||0),wealth=Number(a.wealth||0);
+  let action,reason,destination,mood=a.mood||'آرام',socialIntent='همکاری با جامعه',expectedReward=1;
+  if(hunger>70){action='رفتن به بازار برای تهیه غذا';reason='نیاز غذایی از حد امن بالاتر رفته است';destination='بازار نزدیک';mood='متمرکز';}
+  else if(energy<28){action='رفتن به خانه و استراحت';reason='انرژی پایین است و استراحت بهره‌وری را بالا می‌برد';destination=a.home||'خانه نزدیک';mood='خسته';}
+  else if(social<32){action='پیدا کردن یک Agent برای گفت‌وگو';reason='نیاز اجتماعی پایین است؛ تعامل می‌تواند روحیه را بهتر کند';destination='پارک یا میدان شهر';mood='اجتماعی';socialIntent='شروع گفت‌وگوی دوستانه';expectedReward=5;}
+  else if(wealth<180){action='رفتن به محل کار برای کسب درآمد';reason='ذخیره مالی پایین است و کار با مهارت شغلی بهترین قدم بعدی است';destination=a.job==='کشاورز'?'مزرعه':a.job==='تاجر'?'بازار':a.job==='پزشک'?'بیمارستان':'مرکز کاری';mood='جاه‌طلب';}
+  else if(/کشاورز/.test(a.job||'')){action='رسیدگی به مزرعه و برداشت محصول';reason='وظیفه شغلی و تأمین غذای جامعه در اولویت است';destination='مزرعه نزدیک';}
+  else if(/تاجر/.test(a.job||'')){action='بررسی قیمت‌ها و انجام معامله';reason='استفاده از مهارت تجارت برای تقویت اقتصاد محلی';destination='بازار نزدیک';}
+  else if(/مهندس|معمار|سازنده/.test(a.job||'')){action='بررسی پروژه ساخت‌وساز و نیاز مصالح';reason='مهارت فنی برای توسعه زیرساخت مفید است';destination='پروژه ساختمانی';}
+  else {action='کار روی مهارت و انجام وظیفه شغلی';reason='نیازهای اصلی متعادل‌اند؛ پیشرفت مهارت بهترین اقدام بعدی است';destination=a.home||'مرکز کاری';}
+  res.json({ decision:{action,reason,destination,mood,socialIntent,expectedReward},steps:1,mode:'local-simulation',notice:'تصمیم‌گیری محلی فعال است؛ برای پاسخ‌های ابری باید OPENAI_API_KEY تنظیم شده باشد.' });
 });
 
 app.use(express.static(path.join(__dirname, 'dist')));
