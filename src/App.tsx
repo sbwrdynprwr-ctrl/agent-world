@@ -52,6 +52,18 @@ function isBuildingBlocked(x:number,y:number,originX:number,originY:number,radiu
   }
   return false;
 }
+function isCarBlocked(x:number,y:number,radius:number) {
+  const cellSize=180, roadX=Math.round(x/60)*60, roadY=Math.round(y/60)*60;
+  const cx=Math.floor(x/cellSize), cy=Math.floor(y/cellSize);
+  for(let gx=cx-2;gx<=cx+2;gx++) for(let gy=cy-2;gy<=cy+2;gy++) {
+    const seed=gx*97+gy*131;
+    const baseX=(gx+.5)*cellSize, baseY=(gy+.5)*cellSize;
+    const lane=(seed%2?-1:1)*3.25;
+    const cars=[{x:baseX+(hash(seed,50)-.5)*34,y:roadY+lane},{x:roadX+lane,y:baseY+(hash(seed,40)-.5)*34}];
+    for(const car of cars) if(Math.hypot(x-car.x,y-car.y)<(radius+4.2)) return true;
+  }
+  return false;
+}
 function biome(cx:number,cy:number) {
   const n = hash(cx,cy);
   if (n < .08) return 'water';
@@ -356,7 +368,7 @@ function App() {
     return()=>clearInterval(id);
   },[rallyTarget]);
 
-  const fuelRef=useRef(100);
+  const fuelRef=useRef(100);\n  const moveTarget=useRef<{x:number;y:number}|null>(null);
   useEffect(()=>{
     if(!entered)return;
     let raf=0,last=performance.now();
@@ -376,7 +388,24 @@ function App() {
         setFuel(Math.floor(fuelRef.current));
         if(fuelRef.current<=0)setDriving(false);
       }
-      if(forward||strafe){
+      const manual=!!(forward||strafe);
+      if(manual) moveTarget.current=null;
+      if(!manual && moveTarget.current){
+        const target=moveTarget.current;
+        setPlayer(p=>{
+          const vx=target.x-p.x,vy=target.y-p.y,dist=Math.hypot(vx,vy);
+          if(dist<7){moveTarget.current=null;return p;}
+          const speed=driving?180:(run?150:78);
+          const step=Math.min(dist,speed*dt),ux=vx/dist,uy=vy/dist;
+          const radius=driving?5.5:3.0;
+          const blocked=(x:number,y:number)=>isBuildingBlocked(x,y,p.x,p.y,radius)||isCarBlocked(x,y,radius);
+          const candidates=[{x:p.x+ux*step,y:p.y+uy*step},{x:p.x-uy*step,y:p.y+ux*step},{x:p.x+uy*step,y:p.y-ux*step}];
+          const next=candidates.find(c=>!blocked(c.x,p.y)&&!blocked(c.x,c.y));
+          if(!next){return p;}
+          return {...p,x:next.x,y:next.y,angle:Math.atan2(uy,ux)};
+        });
+      }
+      if(manual){
         const speed=driving?245:(run?170:82);
         const f=forward/length*speed*dt,s=strafe/length*speed*dt;
         setPlayer(p=>{
@@ -384,9 +413,9 @@ function App() {
           const dy=Math.sin(p.angle)*f+Math.cos(p.angle)*s;
           const radius=driving?4.2:2.3;
           const nextX=p.x+dx,nextY=p.y+dy;
-          const xBlocked=isBuildingBlocked(nextX,p.y,p.x,p.y,radius);
+          const xBlocked=isBuildingBlocked(nextX,p.y,p.x,p.y,radius)||isCarBlocked(nextX,p.y,radius);
           const safeX=xBlocked?p.x:nextX;
-          const yBlocked=isBuildingBlocked(safeX,nextY,p.x,p.y,radius);
+          const yBlocked=isBuildingBlocked(safeX,nextY,p.x,p.y,radius)||isCarBlocked(safeX,nextY,radius);
           return {...p,x:safeX,y:yBlocked?p.y:nextY};
         });
       }
@@ -411,7 +440,7 @@ function App() {
     });
   };
 
-  const turn=(dir:number)=>setPlayer(p=>({...p,angle:p.angle+dir*.12}));
+  const handleMoveTarget=(target:{x:number;y:number})=>{moveTarget.current=target;setEventText('مقصد مشخص شد؛ مسیر امن در حال پیمایش است');};\n  const turn=(dir:number)=>setPlayer(p=>({...p,angle:p.angle+dir*.12}));
   const move=(f:number,s:number)=>setPlayer(p=>({...p,x:p.x+Math.cos(p.angle)*f-Math.sin(p.angle)*s,y:p.y+Math.sin(p.angle)*f+Math.cos(p.angle)*s}));
   const nearest=useMemo(()=>{
     let best:Agent|null=null,bd=Infinity;
@@ -499,7 +528,7 @@ function App() {
   </main>;
 
   return <main className='world-shell'>
-    <CinematicWorld playerX={player.x} playerY={player.y} angle={player.angle} time={time} constructionProgress={construction.progress} constructionX={construction.x} constructionY={construction.y} constructionName={construction.name} agents={agentsRef.current.map(a=>({id:a.id,x:a.x,y:a.y,vx:a.vx,vy:a.vy,activity:a.activity,mood:a.mood,job:a.job}))} onLook={delta=>setPlayer(p=>({...p,angle:p.angle+delta}))} />
+    <CinematicWorld playerX={player.x} playerY={player.y} angle={player.angle} onMoveTarget={handleMoveTarget} time={time} constructionProgress={construction.progress} constructionX={construction.x} constructionY={construction.y} constructionName={construction.name} agents={agentsRef.current.map(a=>({id:a.id,x:a.x,y:a.y,vx:a.vx,vy:a.vy,activity:a.activity,mood:a.mood,job:a.job}))} onLook={delta=>setPlayer(p=>({...p,angle:p.angle+delta}))} />
     \n    <header className='hud topbar'><div className='brand'><div className='brand-mark'><Globe2 size={20}/></div><div><b>AGENT WORLD</b><span>یک تمدن زنده که خودش ادامه پیدا می‌کند</span></div></div><div className='stats'><span><Users/> {population.toLocaleString('fa-IR')}<small>جمعیت</small></span><span><Building2/> {nearbySites.filter(s=>s.kind==='city').length}<small>شهر نزدیک</small></span><span><Coins/> {Math.round(economy)}%<small>اقتصاد</small></span><span><BrainCircuit/> 220<small>Agent هوشمند</small></span></div><div className='top-actions'><button className='summon-btn' onClick={summonAllAgents}><Users/> همه Agentها</button><button className='map-btn' onClick={()=>setWorldMapOpen(v=>!v)}><Globe2/> کره جهان</button><button className='hud-toggle' onClick={()=>setHudOpen(v=>!v)} aria-label='نمایش کنترل‌ها'><SlidersHorizontal/> {hudOpen?'بستن پنل‌ها':'کنترل‌ها'}</button></div></header>
     {hudOpen&&construction.progress>0&&<section className='hud construction-panel'><div><b>🏗️ پروژه ساخت: {construction.name}</b><span>{construction.active?'ایجنت‌ها در حال همکاری هستند':'پروژه تکمیل شده'}</span></div><strong>{Math.floor(construction.progress).toLocaleString('fa-IR')}٪</strong><div className='construction-track'><i style={{width:construction.progress+'%'}}/></div><small>مصالح: چوب {Math.floor(construction.materials.wood)} · فولاد {Math.floor(construction.materials.steel)} · سنگ {Math.floor(construction.materials.stone)}</small><small>ابتدا مصالح جمع‌آوری می‌شود؛ سپس تیم ساخت را پیش می‌برد.</small></section>}
     {hudOpen&&<section className='hud command-panel'><div className='command-title'><Users/><b>فرماندهی Agentها</b><small>{agentCommand||'یک فرمان انتخاب کن'}</small></div><div className='command-grid'>{['همه بیایند','دنبال من بیایید','کنار من بمانید','پراکنده شوید','کمک در ساخت','ساخت خانه','ساخت مزرعه','ساخت کارخانه','محافظت کنید','تجارت کنید'].map(c=><button key={c} className={agentCommand===c?'active':''} onClick={()=>commandAgents(c)}>{c}</button>)}</div></section>}
