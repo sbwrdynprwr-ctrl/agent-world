@@ -114,7 +114,7 @@ function makeAgents(): Agent[] {
 }
 
 function App() {
-  const agentsRef = useRef<Agent[]>(makeAgents());
+  const agentsRef = useRef<Agent[]>((() => { try { const saved = JSON.parse(localStorage.getItem(AGENTS_STORAGE_KEY) || 'null'); return Array.isArray(saved) && saved.length ? saved.slice(0, 320) as Agent[] : makeAgents(); } catch { return makeAgents(); } })());
   const cloudBatchCursor = useRef(0);
   const cloudBatchBusy = useRef(false);
   const economyStockRef = useRef<EconomyStock>((() => {
