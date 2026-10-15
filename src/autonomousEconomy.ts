@@ -145,6 +145,14 @@ export function runEconomyTick(agents: EconomyAgent[], previous: EconomyStock): 
   const exhaustedCount = next.filter(a => a.energy < 18).length;
   const hungryRatio = next.length ? hungryCount / next.length : 0;
   const exhaustedRatio = next.length ? exhaustedCount / next.length : 0;
+  const priorityPlan = [
+    { ratio: stock.food / foodTarget, message: 'برنامه خودکار: افزایش تولید غذا در اولویت نخست شهر قرار گرفت.' },
+    { ratio: stock.medicine / medicineTarget, message: 'برنامه خودکار: تأمین دارو و پشتیبانی درمانی در اولویت شهر قرار گرفت.' },
+    { ratio: stock.materials / materialTarget, message: 'برنامه خودکار: تأمین مصالح برای نگهداری و توسعه شهر در اولویت قرار گرفت.' },
+    { ratio: stock.tools / toolTarget, message: 'برنامه خودکار: تأمین ابزار و تعمیر زیرساخت‌ها در اولویت قرار گرفت.' },
+    { ratio: stock.knowledge / knowledgeTarget, message: 'برنامه خودکار: آموزش و پژوهش برای افزایش دانش شهر در اولویت قرار گرفت.' },
+  ].sort((a, b) => a.ratio - b.ratio);
+  if (priorityPlan[0]?.ratio < 0.75) events.push(priorityPlan[0].message);
 
   if (stock.food < 10) events.push('برنامه فوری شهر: بحران غذا؛ تولید و مبادله غذا باید اولویت نخست باشد.');
   else if (stock.food < foodTarget) events.push('هشدار غذا: ذخیره زیر سطح هدف است؛ کشاورزان و ماهیگیران باید تولید را افزایش دهند.');
