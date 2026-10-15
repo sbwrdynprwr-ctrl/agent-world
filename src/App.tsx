@@ -368,7 +368,8 @@ function App() {
     return()=>clearInterval(id);
   },[rallyTarget]);
 
-  const fuelRef=useRef(100);\n  const moveTarget=useRef<{x:number;y:number}|null>(null);
+  const fuelRef=useRef(100);
+  const moveTarget=useRef<{x:number;y:number}|null>(null);
   useEffect(()=>{
     if(!entered)return;
     let raf=0,last=performance.now();
