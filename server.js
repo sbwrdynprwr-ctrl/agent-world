@@ -137,10 +137,10 @@ app.post('/api/agents/autonomy', async (req, res) => {
   const world = req.body?.world || {};
   try {
     const raw = await cloudResponse(
-      'Return a JSON array only. For each supplied agent return one object with keys agentId, action, reason, destination, mood, socialIntent, expectedReward. Choose a sensible autonomous next action based on job, personality, hunger, energy, wealth, social needs, current activity and world state. Keep action and reason concise. Do not invent completed actions. Agents: ' + JSON.stringify(agents) + '\\nWorld: ' + JSON.stringify(world),
+      'Return a JSON array only. For each supplied agent return one object with keys agentId, action, reason, destination, mood, socialIntent, expectedReward. Choose a sensible autonomous next action based on job, personality, hunger, energy, wealth, social needs, current activity and world state. Keep action and reason concise. Do not invent completed actions. Agents: ' + JSON.stringify(agents) + '\nWorld: ' + JSON.stringify(world),
       'You are the cloud-based autonomous decision engine for a living open-world simulation. Make distinct, context-aware decisions for each agent. Return valid JSON only, no markdown.'
     );
-    const cleaned = raw.replace(/^\`\`\`(?:json)?\\s*/i, '').replace(/\\s*\`\`\`$/, '');
+    const cleaned = raw.replace(/^\`\`\`(?:json)?\s*/i, '').replace(/\s*\`\`\`$/, '');
     const parsed = JSON.parse(cleaned);
     const decisions = (Array.isArray(parsed) ? parsed : parsed.decisions || []).filter(d => agents.some(a => Number(a.id) === Number(d.agentId)));
     return res.json({ decisions, mode: 'cloud-ai', model: process.env.OPENAI_MODEL || 'gpt-4.1-mini' });
