@@ -87,15 +87,26 @@ export function runEconomyTick(agents: EconomyAgent[], previous: EconomyStock): 
     economyDelta += wage * 0.03;
 
     if (agent.job === 'تاجر') {
-      // Traders move goods between the market and warehouse instead of creating food from nothing.
-      if (stock.materials > 8) {
+      // Traders coordinate supply: exchange surplus stock for scarce essentials.
+      const foodTarget = Math.max(25, next.length * 0.35);
+      const medicineTarget = Math.max(8, next.length * 0.08);
+      const toolsTarget = Math.max(10, next.length * 0.1);
+      if (stock.food < foodTarget && stock.materials > 8) {
         stock.materials -= 1;
         stock.food += 2;
-        agent.activity = 'تبادل مصالح با غذا در بازار';
-      } else if (stock.tools > 5) {
-        stock.tools -= 1;
+        agent.activity = 'تأمین غذا از طریق مبادله بازار';
+      } else if (stock.medicine < medicineTarget && stock.culture > 5) {
+        stock.culture -= 2;
+        stock.medicine += 1;
+        agent.activity = 'هماهنگی تأمین دارو برای درمانگاه';
+      } else if (stock.tools < toolsTarget && stock.materials > 8) {
+        stock.materials -= 2;
+        stock.tools += 1;
+        agent.activity = 'تأمین ابزار برای مهندسان';
+      } else if (stock.materials > 12 && stock.food >= foodTarget) {
+        stock.materials -= 1;
         stock.food += 1;
-        agent.activity = 'تبادل ابزار با غذا در بازار';
+        agent.activity = 'تبادل مازاد مصالح با بازار';
       } else {
         stock.culture += 1;
         agent.activity = 'جست‌وجوی معامله سودمند در بازار';
