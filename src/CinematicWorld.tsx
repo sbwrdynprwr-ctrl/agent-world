@@ -515,13 +515,22 @@ export default function CinematicWorld({playerX,playerY,angle,onMoveTarget,time,
               const laneCoordinate=u.axis==='x'?u.originZ:u.originX;
               const candidate=u.axis==='x'?u.originX+distance:u.originZ+distance;
               const blocked=(animated||[]).some(other=>{
-                if(other===g||!other.userData?.isVehicle||other.userData.axis!==u.axis)return false;
+                if(other===g||!other.userData?.isVehicle)return false;
                 const ou=other.userData;
-                const otherLane=u.axis==='x'?ou.originZ:ou.originX;
-                if(Math.abs(laneCoordinate-otherLane)>1.5)return false;
-                const otherCoordinate=u.axis==='x'?other.position.x:other.position.z;
-                const gap=(otherCoordinate-candidate)*direction;
-                return gap>0.2&&gap<8.2;
+                if(ou.axis===u.axis){
+                  const otherLane=u.axis==='x'?ou.originZ:ou.originX;
+                  if(Math.abs(laneCoordinate-otherLane)>1.5)return false;
+                  const otherCoordinate=u.axis==='x'?other.position.x:other.position.z;
+                  const gap=(otherCoordinate-candidate)*direction;
+                  return gap>0.2&&gap<8.2;
+                }
+                // Yield briefly before a crossing when a perpendicular car is
+                // already occupying the same crossing area.
+                const crossingX=u.axis==='x'?candidate:ou.originX;
+                const crossingZ=u.axis==='x'?ou.originZ:g.position.z;
+                const otherX=other.position.x;
+                const otherZ=other.position.z;
+                return Math.abs(crossingX-otherX)<6.5&&Math.abs(crossingZ-otherZ)<6.5;
               });
               const safeDistance=blocked?(u.axis==='x'?g.position.x-u.originX:g.position.z-u.originZ):distance;
               if(u.axis==='x'){
