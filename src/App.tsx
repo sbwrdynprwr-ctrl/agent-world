@@ -36,6 +36,22 @@ function hash(x:number,y:number) {
   return n - Math.floor(n);
 }
 function cellAt(x:number,y:number) { return { cx:Math.floor(x / CELL), cy:Math.floor(y / CELL) }; }
+function isBuildingBlocked(x:number,y:number,originX:number,originY:number,radius:number) {
+  const size=180, roadX=Math.round(originX/60)*60, roadY=Math.round(originY/60)*60;
+  const cx=Math.floor(x/size), cy=Math.floor(y/size);
+  for(let gx=cx-2;gx<=cx+2;gx++) for(let gy=cy-2;gy<=cy+2;gy++) {
+    const seed=gx*97+gy*131;
+    if(hash(seed,7)<=.28) continue;
+    for(let i=0;i<3;i++) {
+      const bx=(gx+.5)*size+(hash(seed+i,i)-.5)*110;
+      const by=(gy+.5)*size+(hash(seed+i,i+10)-.5)*110;
+      if(!(Math.abs(bx-roadX)>25&&Math.abs(by-roadY)>25)) continue;
+      const w=13+hash(seed+i,2)*13, d=13+hash(seed+i,3)*12;
+      if(Math.abs(x-bx)<w/2+radius&&Math.abs(y-by)<d/2+radius) return true;
+    }
+  }
+  return false;
+}
 function biome(cx:number,cy:number) {
   const n = hash(cx,cy);
   if (n < .08) return 'water';
