@@ -502,7 +502,7 @@ function App() {
         }else if(!rallyTarget && Math.random()<.24){
           if(Math.hypot(a.vx,a.vy)<.04){const t=agentTarget(a);a.targetX=t.x;a.targetY=t.y;a.activity='در مسیر '+(a.job==='کشاورز'?'مزرعه':a.job==='تاجر'?'بازار':'مقصد کاری');}
           const wanderX=a.x+a.vx*6+(Math.random()-.5)*.8,wanderY=a.y+a.vy*6+(Math.random()-.5)*.8;
-          if(!isBuildingBlocked(wanderX,wanderY,a.x,a.y,1.8)&&!isCarBlocked(wanderX,wanderY,1.8)){a.x=wanderX;a.y=wanderY;}
+          if(!isBuildingBlocked(wanderX,wanderY,a.x,a.y,1.8)&&!isCarBlocked(wanderX,wanderY,1.8)&&!residents.some(other=>other.id!==a.id&&Math.hypot(other.x-wanderX,other.y-wanderY)<2.7)){a.x=wanderX;a.y=wanderY;}
           else{a.vx=0;a.vy=0;a.targetX=undefined;a.targetY=undefined;}
         }
         if(Math.random()<.05 && !Number.isFinite(a.targetX)){const t=agentTarget(a);a.targetX=t.x;a.targetY=t.y;}
