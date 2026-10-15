@@ -91,7 +91,10 @@ export function runEconomyTick(agents: EconomyAgent[], previous: EconomyStock): 
       const foodTarget = Math.max(25, next.length * 0.35);
       const medicineTarget = Math.max(8, next.length * 0.08);
       const toolsTarget = Math.max(10, next.length * 0.1);
-      if (stock.food < foodTarget && stock.materials > 8) {
+      const materialTarget = Math.max(12, next.length * 0.12);
+      // Never trade away essential building stock when it is already scarce.
+      const materialSurplus = stock.materials > materialTarget + 5;
+      if (stock.food < foodTarget && materialSurplus) {
         stock.materials -= 1;
         stock.food += 2;
         agent.activity = 'تأمین غذا از طریق مبادله بازار';
@@ -99,11 +102,15 @@ export function runEconomyTick(agents: EconomyAgent[], previous: EconomyStock): 
         stock.culture -= 2;
         stock.medicine += 1;
         agent.activity = 'هماهنگی تأمین دارو برای درمانگاه';
-      } else if (stock.tools < toolsTarget && stock.materials > 8) {
+      } else if (stock.medicine < medicineTarget && materialSurplus) {
+        stock.materials -= 2;
+        stock.medicine += 1;
+        agent.activity = 'تبدیل مازاد مصالح به تجهیزات درمانی';
+      } else if (stock.tools < toolsTarget && materialSurplus) {
         stock.materials -= 2;
         stock.tools += 1;
         agent.activity = 'تأمین ابزار برای مهندسان';
-      } else if (stock.materials > 12 && stock.food >= foodTarget) {
+      } else if (stock.materials > materialTarget + 5 && stock.food >= foodTarget) {
         stock.materials -= 1;
         stock.food += 1;
         agent.activity = 'تبادل مازاد مصالح با بازار';
