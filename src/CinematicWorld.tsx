@@ -526,11 +526,9 @@ export default function CinematicWorld({playerX,playerY,angle,onMoveTarget,time,
                 }
                 // Yield briefly before a crossing when a perpendicular car is
                 // already occupying the same crossing area.
-                const crossingX=u.axis==='x'?candidate:ou.originX;
-                const crossingZ=u.axis==='x'?ou.originZ:g.position.z;
-                const otherX=other.position.x;
-                const otherZ=other.position.z;
-                return Math.abs(crossingX-otherX)<6.5&&Math.abs(crossingZ-otherZ)<6.5;
+                const crossingX=u.axis==='x'?candidate:u.originX;
+                const crossingZ=u.axis==='x'?u.originZ:candidate;
+                return Math.abs(crossingX-other.position.x)<6.5&&Math.abs(crossingZ-other.position.z)<6.5;
               });
               const safeDistance=blocked?(u.axis==='x'?g.position.x-u.originX:g.position.z-u.originZ):distance;
               if(u.axis==='x'){
