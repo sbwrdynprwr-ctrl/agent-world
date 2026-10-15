@@ -390,7 +390,16 @@ function App() {
       if(driving && fuel<=0) setDriving(false);
       if(forward||strafe){
         const f=forward/length*speed*dt,s=strafe/length*speed*dt;
-        setPlayer(p=>({...p,x:p.x+Math.cos(p.angle)*f-Math.sin(p.angle)*s,y:p.y+Math.sin(p.angle)*f+Math.cos(p.angle)*s}));
+        setPlayer(p=>{
+          const dx=Math.cos(p.angle)*f-Math.sin(p.angle)*s;
+          const dy=Math.sin(p.angle)*f+Math.cos(p.angle)*s;
+          const radius=driving?4.2:2.3;
+          const nextX=p.x+dx, nextY=p.y+dy;
+          const xBlocked=isBuildingBlocked(nextX,p.y,p.x,p.y,radius);
+          const safeX=xBlocked?p.x:nextX;
+          const yBlocked=isBuildingBlocked(safeX,nextY,p.x,p.y,radius);
+          return {...p,x:safeX,y:yBlocked?p.y:nextY};
+        });
       }
 
       ctx.clearRect(0,0,innerWidth,innerHeight);
