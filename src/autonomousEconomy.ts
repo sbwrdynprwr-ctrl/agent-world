@@ -61,8 +61,14 @@ export function runEconomyTick(agents: EconomyAgent[], previous: EconomyStock): 
 
     const options = tasks[agent.job] || [{ activity: 'یادگیری مهارت تازه', product: 'knowledge' as const, amount: 1, energy: 3, pay: 3 }];
     let task = options[(agent.id + Math.floor(agent.wealth)) % options.length];
-    if (stock.food < Math.max(25, next.length * 0.35) && (agent.job === 'کشاورز' || agent.job === 'ماهیگیر')) task = options[options.length - 1];
-    if (stock.medicine < 8 && agent.job === 'پزشک') task = options[0];
+    const foodTarget = Math.max(25, next.length * 0.35);
+    // Let the workforce react to shortages instead of following a fixed routine.
+    if (stock.food < foodTarget && (agent.job === 'کشاورز' || agent.job === 'ماهیگیر')) task = options[options.length - 1];
+    if (stock.medicine < Math.max(8, next.length * 0.08) && agent.job === 'پزشک') task = options[0];
+    if (stock.materials < Math.max(12, next.length * 0.12) && agent.job === 'سازنده') task = options[0];
+    if (stock.tools < Math.max(10, next.length * 0.1) && agent.job === 'مهندس') task = options[0];
+    if (stock.knowledge < Math.max(15, next.length * 0.12) && (agent.job === 'پژوهشگر' || agent.job === 'معلم' || agent.job === 'معمار')) task = options[0];
+    if (stock.culture < 8 && agent.job === 'هنرمند') task = options[0];
     agent.activity = task.activity;
     agent.energy = Math.max(0, agent.energy - task.energy);
 
