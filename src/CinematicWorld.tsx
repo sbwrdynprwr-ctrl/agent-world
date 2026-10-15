@@ -457,11 +457,11 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
               if(u.axis==='x'){
                 g.position.x=u.originX+travel;
                 g.position.z=u.originZ;
-                g.rotation.y=travel>=0?Math.PI/2:-Math.PI/2;
+                g.rotation.y=travel>=0?-Math.PI/2:Math.PI/2;
               }else{
                 g.position.x=u.originX;
                 g.position.z=u.originZ+travel;
-                g.rotation.y=travel>=0?0:Math.PI;
+                g.rotation.y=travel>=0?Math.PI:0;
               }
             }else if(u.axis){
               const t=now*.001*u.speed+u.phase;
