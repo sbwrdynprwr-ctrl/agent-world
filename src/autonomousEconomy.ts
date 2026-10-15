@@ -52,10 +52,19 @@ export function runEconomyTick(agents: EconomyAgent[], previous: EconomyStock): 
 
   for (const agent of next) {
     agent.hunger = Math.min(100, agent.hunger + 1);
+
+    // Recovery is a real priority: exhausted or very hungry residents should
+    // eat when possible and regain energy before returning to productive work.
     if (agent.energy < 18 || agent.hunger > 86) {
-      agent.activity = agent.hunger > 86 ? 'در جست‌وجوی غذا و استراحت' : 'در حال استراحت برای بازیابی انرژی';
-      agent.energy = Math.min(100, agent.energy + 3);
-      agent.mood = 'خسته';
+      if (stock.food > 0 && agent.hunger > 25) {
+        stock.food -= 1;
+        agent.hunger = Math.max(0, agent.hunger - 22);
+        agent.activity = 'غذا خوردن و بازیابی نیرو';
+      } else {
+        agent.activity = agent.hunger > 86 ? 'در جست‌وجوی غذا و استراحت' : 'در حال استراحت برای بازیابی انرژی';
+      }
+      agent.energy = Math.min(100, agent.energy + 8);
+      agent.mood = agent.hunger > 70 ? 'گرسنه' : 'در حال بازیابی';
       continue;
     }
 
