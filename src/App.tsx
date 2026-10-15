@@ -162,7 +162,10 @@ function App() {
   useEffect(()=>{try{localStorage.setItem('agent-world-construction-v1',JSON.stringify(construction));}catch{}},[construction]);
   useEffect(() => {
     const saveEconomyStock = () => {
-      try { localStorage.setItem('agent-world-economy-stock-v1', JSON.stringify(economyStockRef.current)); } catch {}
+      try {
+        localStorage.setItem('agent-world-economy-stock-v1', JSON.stringify(economyStockRef.current));
+        localStorage.setItem(AGENTS_STORAGE_KEY, JSON.stringify(agentsRef.current));
+      } catch {}
     };
     const timer = window.setInterval(saveEconomyStock, 5000);
     window.addEventListener('pagehide', saveEconomyStock);
