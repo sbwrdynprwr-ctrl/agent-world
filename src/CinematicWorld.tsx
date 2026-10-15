@@ -138,7 +138,7 @@ function addCar(root:THREE.Group,x:number,z:number,seed:number,axis:'x'|'z'){
   box(g,.12,.16,.38,0xe4483f,-2.92,.9,.68,glow(0xe4483f,.55));
   g.position.set(x,.1,z);
   g.rotation.y=axis==='z'?Math.PI/2:0;
-  g.userData={phase:hash(seed,8)*6.28,speed:5+hash(seed,9)*2.5,axis,originX:x,originZ:z,wheels:g.children.filter(o=>o instanceof THREE.Mesh && (o.geometry as THREE.CylinderGeometry).type==='CylinderGeometry')};
+  g.userData={phase:hash(seed,8),speed:5+hash(seed,9)*2.5,direction:hash(seed,10)>.5?1:-1,axis,originX:x,originZ:z,wheels:g.children.filter(o=>o instanceof THREE.Mesh && (o.geometry as THREE.CylinderGeometry).type==='CylinderGeometry')};
   root.add(g);
 }
 
@@ -496,17 +496,21 @@ export default function CinematicWorld({playerX,playerY,angle,onMoveTarget,time,
                 g.rotation.y=forward?Math.PI:0;
               }
             }else if(u.axis){
-              const t=now*.001*u.speed+u.phase;
-              const travel=Math.sin(t)*25;
-              const forward=Math.cos(t)>=0;
+              // Keep each vehicle in its lane and moving in one direction instead of
+              // reversing at every sine-wave peak. The short loop is deterministic.
+              const direction=u.direction===-1?-1:1;
+              const distance=((now*.001*u.speed*direction+(u.phase||0)*50+25)%50+50)%50-25;
+              const forward=direction>0;
               if(u.axis==='x'){
-                g.position.x=u.originX+travel;
+                g.position.x=u.originX+distance;
+                g.position.z=u.originZ;
                 g.rotation.y=forward?0:Math.PI;
               }else{
-                g.position.z=u.originZ+travel;
+                g.position.x=u.originX;
+                g.position.z=u.originZ+distance;
                 g.rotation.y=forward?-Math.PI/2:Math.PI/2;
               }
-              if(u.wheels){const roll=0.035*u.speed*(forward?1:-1);for(const wheel of u.wheels as THREE.Object3D[]){if(u.axis==='x')wheel.rotation.z+=roll;else wheel.rotation.x+=roll;}}
+              if(u.wheels){const roll=0.035*u.speed*direction;for(const wheel of u.wheels as THREE.Object3D[]){if(u.axis==='x')wheel.rotation.z+=roll;else wheel.rotation.x+=roll;}}
             }
           });
 
