@@ -244,7 +244,12 @@ function buildWorld(px:number,pz:number,constructionProgress:number,construction
   const groundPos=groundGeo.attributes.position;
   const groundColors:number[]=[];
   const grassPalette=[new THREE.Color(0x47764b),new THREE.Color(0x527f4a),new THREE.Color(0x3e6b42),new THREE.Color(0x68864c)];
-  for(let i=0;i<groundPos.count;i++){const v=grassPalette[Math.floor(hash(i,7)*grassPalette.length)];groundColors.push(v.r,v.g,v.b);}
+  for(let i=0;i<groundPos.count;i++){
+    const variation=hash(i,7),v=grassPalette[Math.floor(variation*grassPalette.length)];
+    groundPos.setZ(i,(hash(i,17)-.5)*.22);
+    const shade=.92+hash(i,27)*.16;groundColors.push(v.r*shade,v.g*shade,v.b*shade);
+  }
+  groundGeo.attributes.position.needsUpdate=true;groundGeo.computeVertexNormals();
   groundGeo.setAttribute('color',new THREE.Float32BufferAttribute(groundColors,3));
   const groundMat=new THREE.MeshStandardMaterial({color:0xffffff,vertexColors:true,roughness:1,metalness:0});
   const ground=new THREE.Mesh(groundGeo,groundMat);
@@ -293,7 +298,7 @@ function buildWorld(px:number,pz:number,constructionProgress:number,construction
     const tz=pz+(hash(i,330)-.5)*700;
     if(Math.abs(tx-roadX)>32&&Math.abs(tz-roadZ)>32) addTower(root,tx,tz,900+i);
   }
-  const nearbyAgents=agents.filter(a=>Math.abs(a.x-px)<WORLD_SIZE*.52&&Math.abs(a.y-pz)<WORLD_SIZE*.52).slice(0,70);
+  const nearbyAgents=agents.filter(a=>Math.abs(a.x-px)<WORLD_SIZE*.52&&Math.abs(a.y-pz)<WORLD_SIZE*.52).slice(0,42);
   for(const a of nearbyAgents){
     addAgent(root,a.x,a.y,a.id,'x');
     const model=root.children[root.children.length-1] as THREE.Group;
@@ -434,6 +439,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
           }
 
           world.position.set(-s.playerX,0,-s.playerY);
+          const agentsById=new Map(s.agents.map(a=>[a.id,a]));
           const daylight=Math.max(.2,Math.sin(((s.time-6)/24)*Math.PI*2)*.5+.5);
           const sky=new THREE.Color().setHSL(.56,.38,.34+daylight*.40);
           scene.background=sky;
@@ -450,7 +456,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
             if(g.userData?.isConstruction){g.position.x=s.constructionX;g.position.z=s.constructionY;g.visible=s.constructionProgress>0;g.children.forEach(child=>{if(child.userData.buildStage!==undefined)child.visible=s.constructionProgress/100>=child.userData.buildStage;});}
             const u=g.userData||{};
             if(u.agentId){
-              const a=s.agents.find(v=>v.id===u.agentId);
+              const a=agentsById.get(u.agentId);
               if(a){g.position.set(a.x,0,a.y);if(Math.hypot(a.vx,a.vy)>.025)g.rotation.y=Math.atan2(a.vx,-a.vy);}
               const t=now*.0018*u.speed+u.phase;
               const stride=Math.sin(t)*(a&&Math.hypot(a.vx,a.vy)>.025?1:.18);
