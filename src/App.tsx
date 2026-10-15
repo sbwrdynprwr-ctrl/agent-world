@@ -503,8 +503,9 @@ function App() {
           }else{a.x=a.targetX as number;a.y=a.targetY as number;a.vx=0;a.vy=0;a.targetX=undefined;a.targetY=undefined;a.pathFailures=0;if(a.activity.includes('مسیر'))a.activity='در حال انجام وظیفه شغلی';}
         }else if(!rallyTarget && Math.random()<.24){
           if(Math.hypot(a.vx,a.vy)<.04){const t=agentTarget(a);a.targetX=t.x;a.targetY=t.y;a.activity='در مسیر '+(a.job==='کشاورز'?'مزرعه':a.job==='تاجر'?'بازار':'مقصد کاری');}
-          const wanderX=a.x+a.vx*6+(Math.random()-.5)*.8,wanderY=a.y+a.vy*6+(Math.random()-.5)*.8;
-          if(!isBuildingBlocked(wanderX,wanderY,a.x,a.y,1.8)&&!isCarBlocked(wanderX,wanderY,1.8)&&!residents.some(other=>other.id!==a.id&&Math.hypot(other.x-wanderX,other.y-wanderY)<2.7)){a.x=wanderX;a.y=wanderY;}
+          const wanderX=a.x+a.vx*4+(Math.random()-.5)*.5,wanderY=a.y+a.vy*4+(Math.random()-.5)*.5;
+          // Use the same conservative spacing for free roaming as for goal-directed walking.
+          if(!isBuildingBlocked(wanderX,wanderY,a.x,a.y,2.0)&&!isCarBlocked(wanderX,wanderY,2.0)&&!residents.some(other=>other.id!==a.id&&Math.hypot(other.x-wanderX,other.y-wanderY)<3.2)){a.x=wanderX;a.y=wanderY;}
           else{a.vx=0;a.vy=0;a.targetX=undefined;a.targetY=undefined;}
         }
         if(Math.random()<.05 && !Number.isFinite(a.targetX)){const t=agentTarget(a);a.targetX=t.x;a.targetY=t.y;}
