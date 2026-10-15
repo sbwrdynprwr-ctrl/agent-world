@@ -237,6 +237,45 @@ function App() {
     return best && bd<210 ? best : null;
   },[nearbySites,player.x,player.y]);
 
+  // Autonomous civilization loop: partnered adults can form families and raise new generations.
+  // This is a game simulation, not real-world population data.
+  useEffect(() => {
+    if (!entered) return;
+    const timer = window.setInterval(() => {
+      const people = agentsRef.current;
+      if (people.length >= 320) return;
+      const parents = people.filter(a =>
+        a.age >= 22 && a.age <= 48 && a.partnerId !== undefined &&
+        a.social >= 58 && a.hunger < 78 && a.energy >= 35 && a.children < 4
+      );
+      if (!parents.length || Math.random() > 0.22) return;
+      const parent = parents[Math.floor(Math.random() * parents.length)];
+      const partner = people.find(a => a.id === parent.partnerId);
+      if (!partner || partner.age < 18 || partner.age > 55) return;
+      const id = Math.max(...people.map(a => a.id)) + 1;
+      const child: Agent = {
+        ...parent,
+        id,
+        x: (parent.x + partner.x) / 2 + (Math.random() - .5) * 12,
+        y: (parent.y + partner.y) / 2 + (Math.random() - .5) * 12,
+        vx: 0, vy: 0, age: 0, generation: Math.max(parent.generation, partner.generation) + 1,
+        children: 0, partnerId: undefined, wealth: 25, energy: 90, hunger: 20,
+        social: 45, intelligence: Math.max(35, parent.intelligence - 8),
+        mood: 'خوشحال', goal: 'رشد و یادگیری', activity: 'عضو تازه خانواده؛ در حال رشد',
+        home: parent.home, reputation: 50,
+        skills: ['یادگیری', 'ارتباطات']
+      };
+      parent.children += 1;
+      partner.children += 1;
+      parent.activity = 'رسیدگی به خانواده';
+      partner.activity = 'رسیدگی به خانواده';
+      people.push(child);
+      setEventText('👶 نسل تازه متولد شد؛ خانوادهٔ '+parent.home+' بزرگ‌تر شد. جمعیت شبیه‌سازی: '+people.length+' ایجنت.');
+      setSocialFeed(prev => [{id:++socialSequence.current,line:'نسل تازه: خانوادهٔ '+parent.home+' صاحب فرزند شد؛ نسل '+child.generation+'.',time:time},...prev].slice(0,12));
+    }, 20000);
+    return () => window.clearInterval(timer);
+  }, [entered]);
+
   useEffect(() => {
     if(!entered) return;
     let active=true;
