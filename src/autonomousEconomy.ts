@@ -112,7 +112,10 @@ export function runEconomyTick(agents: EconomyAgent[], previous: EconomyStock): 
         agent.activity = 'جست‌وجوی معامله سودمند در بازار';
       }
     } else {
-      stock[task.product] += task.amount * (task.product === 'food' && stock.food < Math.max(25, next.length * 0.35) ? 1.8 : 1);
+      const target = task.product === 'food' ? Math.max(25, next.length * 0.35) : task.product === 'medicine' ? Math.max(8, next.length * 0.08) : task.product === 'materials' ? Math.max(12, next.length * 0.12) : task.product === 'tools' ? Math.max(10, next.length * 0.1) : task.product === 'knowledge' ? Math.max(15, next.length * 0.12) : 8;
+      const ratio = stock[task.product] / target;
+      const boost = ratio < 0.35 ? 2.5 : ratio < 0.6 ? 2 : ratio < 1 ? 1.5 : 1;
+      stock[task.product] += task.amount * boost;
     }
 
     if (stock.food > 0 && agent.hunger > 25) {
