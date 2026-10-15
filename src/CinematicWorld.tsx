@@ -14,7 +14,7 @@ const hash=(a:number,b:number)=>{
 };
 
 const mat=(color:number,roughness=.55,metalness=.08,clearcoat=0)=>{
-  return new THREE.MeshPhysicalMaterial({color,roughness,metalness,clearcoat,clearcoatRoughness:.18});
+  return new THREE.MeshPhysicalMaterial({color,roughness,metalness,clearcoat,clearcoatRoughness:.12,envMapIntensity:1.15});
 };
 
 const glow=(color:number,intensity=2)=>{
@@ -31,21 +31,21 @@ function box(root:THREE.Group,w:number,h:number,d:number,color:number,x:number,y
 }
 
 function addBuilding(root:THREE.Group,x:number,z:number,seed:number){
-  const hgt=18+hash(seed,1)*62;
+  const hgt=22+hash(seed,1)*78;
   const w=13+hash(seed,2)*13;
   const d=13+hash(seed,3)*12;
-  const base=[0x777a78,0x8a8175,0x59656a,0x9b9589][seed%4];
+  const base=[0x9b9a91,0xb3a58f,0x697b83,0xc1b9a8,0x7e8985,0x8b7770][Math.abs(seed)%6];
   box(root,w,hgt,d,base,x,hgt/2,z,mat(base,.78,.08,.04));
   box(root,w*1.05,.65,d*1.05,0x111a20,x,hgt+.32,z,mat(0x111a20,.35,.7,.2));
-  const glass=mat(0x7899a3,.24,.28,.12);
+  const glass=mat(0x4e7786,.16,.42,.28);
   const rows=Math.floor(hgt/4);
   const cols=Math.max(2,Math.floor(w/3.2));
   for(let r=0;r<rows;r++){
     for(let c=0;c<cols;c++){
-      if((r+c+seed)%5===0) continue;
+      if((r+c+seed)%6===0) continue;
       const wx=x-w*.34+c*(w*.68/Math.max(1,cols-1));
       const wy=2.4+r*3.65;
-      const win=box(root,.95,.72,.08,0x5bd9ee,wx,wy,z-d/2-.045,glass);
+      const win=box(root,1.18,1.05,.10,0x5bd9ee,wx,wy,z-d/2-.045,glass);
       if((r+c+seed)%3===0){
         (win.material as THREE.MeshPhysicalMaterial).emissive.set(0x45d9ff);
         (win.material as THREE.MeshPhysicalMaterial).emissiveIntensity=.45;
@@ -91,9 +91,9 @@ function addTree(root:THREE.Group,x:number,z:number,s:number,seed:number){
   trunk.position.y=1.4*s;
   trunk.castShadow=true;
   g.add(trunk);
-  const crownMat=mat(seed%2?0x1f7142:0x2f8450,.78,.02);
+  const crownMat=mat([0x285c35,0x367545,0x477e43,0x2f6840,0x5c8144][Math.abs(seed)%5],.9,.01);
   for(let i=0;i<4;i++){
-    const crown=new THREE.Mesh(new THREE.SphereGeometry(1.05*s,18,14),crownMat);
+    const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(1.08*s,2),crownMat);
     crown.position.set((i-1.5)*.45*s,2.8*s+i*.16*s,Math.sin(i*1.7)*.35*s);
     crown.castShadow=true;
     g.add(crown);
@@ -103,12 +103,12 @@ function addTree(root:THREE.Group,x:number,z:number,s:number,seed:number){
 }
 
 function addStreet(root:THREE.Group,x:number,z:number,vertical:boolean){
-  const roadW=13;
-  box(root,vertical?roadW:WORLD_SIZE,.2,vertical?WORLD_SIZE:roadW,0x20272b,x,.02,z,mat(0x20272b,.96,.01));
+  const roadW=15;
+  box(root,vertical?roadW:WORLD_SIZE,.2,vertical?WORLD_SIZE:roadW,0x343a3b,x,.02,z,mat(0x343a3b,.99,.0));
   const curb=mat(0x9ba5a5,.78,.08);
   const sidewalk=mat(0x68777a,.88,.04);
   for(const side of [-1,1]){
-    box(root,vertical?3.8:WORLD_SIZE,.34,vertical?WORLD_SIZE:3.8,0x68777a,x+(vertical?side*8.6:0),.17,z+(vertical?0:side*8.6),sidewalk);
+    box(root,vertical?3.8:WORLD_SIZE,.34,vertical?WORLD_SIZE:3.8,0x8b918d,x+(vertical?side*9.5:0),.17,z+(vertical?0:side*9.5),sidewalk);
     box(root,vertical?.34:WORLD_SIZE,.38,vertical?WORLD_SIZE:.34,0xb5bcb9,x+(vertical?side*6.55:0),.19,z+(vertical?0:side*6.55),curb);
     box(root,vertical?.08:WORLD_SIZE,.035,vertical?WORLD_SIZE:.08,0xe9dfb2,x+(vertical?side*2.8:0),.135,z+(vertical?0:side*2.8),mat(0x394348,.98,.01));
   }
@@ -328,12 +328,12 @@ export default function CinematicWorld({playerX,playerY,angle,onMoveTarget,time,
     const init=()=>{
       try{
         renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,window.innerWidth<800?1.35:1.75));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,window.innerWidth<800?1.5:2));
         renderer.setSize(host.clientWidth||window.innerWidth,host.clientHeight||window.innerHeight,false);
         renderer.setClearColor(0x78a9b7,1);
         renderer.outputColorSpace=THREE.SRGBColorSpace;
         renderer.toneMapping=THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure=1.22;
+        renderer.toneMappingExposure=1.34;
         renderer.shadowMap.enabled=true;
         renderer.shadowMap.type=THREE.PCFSoftShadowMap;
         renderer.info.autoReset=true;
@@ -342,15 +342,15 @@ export default function CinematicWorld({playerX,playerY,angle,onMoveTarget,time,
         host.appendChild(renderer.domElement);
 
         scene=new THREE.Scene();
-        scene.background=new THREE.Color(0x9abfc7);
-        scene.fog=new THREE.Fog(0x9abfc7,480,2200);
+        scene.background=new THREE.Color(0x91c5df);
+        scene.fog=new THREE.Fog(0x91c5df,520,2500);
 
-        const hemi=new THREE.HemisphereLight(0xeaf8ff,0x34462a,2.8);
+        const hemi=new THREE.HemisphereLight(0xdff3ff,0x514538,3.15);
         scene.add(hemi);
-        const sun=new THREE.DirectionalLight(0xfff3dc,7.4);
+        const sun=new THREE.DirectionalLight(0xfff0d8,8.2);
         sun.position.set(-260,420,220);
         sun.castShadow=true;
-        sun.shadow.mapSize.set(window.innerWidth<800?1024:2048,window.innerWidth<800?1024:2048);
+        sun.shadow.mapSize.set(window.innerWidth<800?1536:2048,window.innerWidth<800?1536:2048);
         sun.shadow.camera.near=1;
         sun.shadow.camera.far=1400;
         sun.shadow.camera.left=-500;
@@ -457,13 +457,13 @@ export default function CinematicWorld({playerX,playerY,angle,onMoveTarget,time,
           world.position.set(-s.playerX,0,-s.playerY);
           const agentsById=new Map(s.agents.map(a=>[a.id,a]));
           const daylight=Math.max(.2,Math.sin(((s.time-6)/24)*Math.PI*2)*.5+.5);
-          const sky=new THREE.Color().setHSL(.56,.38,.34+daylight*.40);
+          const sky=new THREE.Color().setHSL(.565,.48,.31+daylight*.43);
           scene.background=sky;
           (scene.fog as THREE.Fog).color.copy(sky);
           (scene.fog as THREE.Fog).near=daylight>.55?420:230;
           (scene.fog as THREE.Fog).far=daylight>.55?2200:1350;
-          hemi.intensity=1.05+daylight*2.15;
-          sun.intensity=1.35+daylight*5.4;
+          hemi.intensity=1.25+daylight*2.3;
+          sun.intensity=1.5+daylight*6.1;
           sun.position.set(Math.cos(s.time/24*Math.PI*2)*420,260+daylight*420,Math.sin(s.time/24*Math.PI*2)*340);
           cityGlow.intensity=.8+(1-daylight)*7;
 
