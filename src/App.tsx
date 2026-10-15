@@ -23,6 +23,7 @@ type ChatMessage = { role:'user'|'assistant'; content:string };
 type Site = { x:number; y:number; kind:'city'|'farm'|'factory'|'hospital'|'market'|'park'; seed:number };
 
 const STORAGE_KEY = 'agent-world-explorer-v5';
+const AGENTS_STORAGE_KEY = 'agent-world-agents-v1';
 const CELL = 120;
 const names = ['آریا','نیما','رها','سام','لیا','کیان','مهسا','نوید','یونا','باران','پارسا','هلیا','آبتین','دانا','روناک','ماهان'];
 const jobs = ['کشاورز','مهندس','پزشک','معمار','سازنده','تاجر','پژوهشگر','برنامه‌نویس','معلم','راننده','هنرمند','ماهیگیر'];
