@@ -33,10 +33,10 @@ function addBuilding(root:THREE.Group,x:number,z:number,seed:number){
   const hgt=18+hash(seed,1)*62;
   const w=13+hash(seed,2)*13;
   const d=13+hash(seed,3)*12;
-  const base=[0x26343b,0x34434a,0x4b555a,0x2b414b][seed%4];
-  box(root,w,hgt,d,base,x,hgt/2,z,mat(base,.2,.42,.32));
+  const base=[0x777a78,0x8a8175,0x59656a,0x9b9589][seed%4];
+  box(root,w,hgt,d,base,x,hgt/2,z,mat(base,.78,.08,.04));
   box(root,w*1.05,.65,d*1.05,0x111a20,x,hgt+.32,z,mat(0x111a20,.35,.7,.2));
-  const glass=mat(0x4aa8bf,.08,.68,.5);
+  const glass=mat(0x7899a3,.24,.28,.12);
   const rows=Math.floor(hgt/4);
   const cols=Math.max(2,Math.floor(w/3.2));
   for(let r=0;r<rows;r++){
@@ -56,9 +56,9 @@ function addBuilding(root:THREE.Group,x:number,z:number,seed:number){
     (win.material as THREE.MeshPhysicalMaterial).emissive.set(0x32b9d6);
     (win.material as THREE.MeshPhysicalMaterial).emissiveIntensity=.28;
   }
-  const crown=box(root,w*.55,1.1,d*.55,0x6feaff,x,hgt+.95,z,glow(0x51ddff,2.8));
+  const crown=box(root,w*.55,1.1,d*.55,0x4b5558,x,hgt+.95,z,mat(0x4b5558,.72,.18,.04));
   crown.rotation.y=hash(seed,8)*Math.PI;
-  const antenna=new THREE.Mesh(new THREE.CylinderGeometry(.09,.16,9,10),glow(0x5feaff,3));
+  const antenna=new THREE.Mesh(new THREE.CylinderGeometry(.09,.16,5,10),mat(0x5c6263,.62,.5));
   antenna.position.set(x,hgt+5.8,z);
   root.add(antenna);
 }
@@ -66,11 +66,11 @@ function addBuilding(root:THREE.Group,x:number,z:number,seed:number){
 function addTower(root:THREE.Group,x:number,z:number,seed:number){
   const hgt=70+hash(seed,4)*75;
   const r=7+hash(seed,5)*6;
-  const tower=new THREE.Mesh(new THREE.CylinderGeometry(r*.78,r,hgt,28),mat(0x27404c,.1,.65,.55));
+  const tower=new THREE.Mesh(new THREE.CylinderGeometry(r*.78,r,hgt,28),mat(0x687477,.72,.18,.08));
   tower.position.set(x,hgt/2,z);
   tower.castShadow=true;
   root.add(tower);
-  const ringMat=glow(seed%2?0x49e7ff:0x8f7cff,1.8);
+  const ringMat=mat(0x879294,.58,.32,.04);
   for(let y=8;y<hgt;y+=7){
     const ring=new THREE.Mesh(new THREE.TorusGeometry(r*1.01,.09,8,28),ringMat);
     ring.rotation.x=Math.PI/2;
@@ -324,10 +324,9 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
         renderer.setClearColor(0x78a9b7,1);
         renderer.outputColorSpace=THREE.SRGBColorSpace;
         renderer.toneMapping=THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure=1.5;
+        renderer.toneMappingExposure=1.22;
         renderer.shadowMap.enabled=true;
         renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-        renderer.toneMappingExposure=1.22;
         renderer.info.autoReset=true;
         renderer.domElement.className='cinematic-canvas';
         renderer.domElement.style.touchAction='none';
@@ -352,7 +351,7 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
         scene.add(sun);
         scene.add(sun.target);
 
-        const cityGlow=new THREE.PointLight(0x43dfff,4,300);
+        const cityGlow=new THREE.PointLight(0xffd7a0,1.4,220);
         cityGlow.position.set(0,45,0);
         scene.add(cityGlow);
 
