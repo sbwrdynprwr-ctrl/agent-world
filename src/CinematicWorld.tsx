@@ -466,9 +466,14 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
             }else if(u.axis){
               const t=now*.001*u.speed+u.phase;
               const travel=Math.sin(t)*48;
-              if(u.axis==='x')g.position.x=u.originX+travel;
-              else g.position.z=u.originZ+travel;
-              if(u.wheels){for(const wheel of u.wheels as THREE.Object3D[]) wheel.rotation.y+=0.035*u.speed;}
+              if(u.axis==='x'){
+                g.position.x=u.originX+travel;
+                g.rotation.y=Math.cos(t)>=0?0:Math.PI;
+              }else{
+                g.position.z=u.originZ+travel;
+                g.rotation.y=Math.cos(t)>=0?-Math.PI/2:Math.PI/2;
+              }
+              if(u.wheels){for(const wheel of u.wheels as THREE.Object3D[]) wheel.rotation.z+=0.035*u.speed;}
             }
           });
 
