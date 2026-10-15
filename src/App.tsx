@@ -59,7 +59,7 @@ function isCarBlocked(x:number,y:number,radius:number) {
   for(let gx=cx-2;gx<=cx+2;gx++) for(let gy=cy-2;gy<=cy+2;gy++) {
     const seed=gx*97+gy*131;
     const baseX=(gx+.5)*cellSize, baseY=(gy+.5)*cellSize;
-    const lane=(seed%2?-1:1)*3.25;
+    const lane=(seed%2?-1:1)*5.2;
     const cars=[{x:baseX+(hash(seed,50)-.5)*34,y:roadY+lane},{x:roadX+lane,y:baseY+(hash(seed,40)-.5)*34}];
     for(const car of cars) if(Math.hypot(x-car.x,y-car.y)<(radius+4.2)) return true;
   }
