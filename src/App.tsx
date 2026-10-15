@@ -441,7 +441,8 @@ function App() {
     });
   };
 
-  const handleMoveTarget=(target:{x:number;y:number})=>{moveTarget.current=target;setEventText('مقصد مشخص شد؛ مسیر امن در حال پیمایش است');};\n  const turn=(dir:number)=>setPlayer(p=>({...p,angle:p.angle+dir*.12}));
+  const handleMoveTarget=(target:{x:number;y:number})=>{moveTarget.current=target;setEventText('مقصد مشخص شد؛ مسیر امن در حال پیمایش است');};
+  const turn=(dir:number)=>setPlayer(p=>({...p,angle:p.angle+dir*.12}));
   const move=(f:number,s:number)=>setPlayer(p=>({...p,x:p.x+Math.cos(p.angle)*f-Math.sin(p.angle)*s,y:p.y+Math.sin(p.angle)*f+Math.cos(p.angle)*s}));
   const nearest=useMemo(()=>{
     let best:Agent|null=null,bd=Infinity;
