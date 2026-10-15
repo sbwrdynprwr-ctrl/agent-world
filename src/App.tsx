@@ -657,7 +657,33 @@ function App() {
     if(!selected||!chatInput.trim()||chatBusy)return;
     const agentForReply = selected;
     const userText=chatInput.trim();setChatInput('');
-    const next=[...chat,{role:'user' as const,content:userText}];setChat(next);setChatBusy(true);setAiStatus('در حال فکر کردن…');
+    const next=[...chat,{role:'user' as const,content:userText}];setChat(next);
+    // Natural-language command parser: commands typed in chat are executed in the world, not just answered.
+    const q=userText.replace(/[ي]/g,'ی').replace(/[ك]/g,'ک').toLowerCase();
+    let worldCommand='';
+    if(/همه.{0,12}(بیاین|بیایید|بیان|جمع|نزدیک من|کنار من)|بیاین پیش من|بیایید پیش من|جمع شوین|جمع شوید/.test(q)) worldCommand='همه بیایند';
+    else if(/دنبال من|پشت سر من|همراهم بیاین|همراه من/.test(q)) worldCommand='دنبال من بیایید';
+    else if(/همین جا|همینجا|کنار من بمان|سر جایتان|اینجا بمان/.test(q)) worldCommand='کنار من بمانید';
+    else if(/پراکنده|پخش شوید|برگردید سر کار|سر کارتان/.test(q)) worldCommand='پراکنده شوید';
+    else if(/کمک.{0,12}ساخت|ساخت.{0,12}(خانه|مزرعه|کارخانه)|بسازید.{0,12}(خانه|مزرعه|کارخانه)/.test(q)) worldCommand=/مزرعه/.test(q)?'ساخت مزرعه':/کارخانه/.test(q)?'ساخت کارخانه':/خانه/.test(q)?'ساخت خانه':'کمک در ساخت';
+    else if(/محافظت|نگهبانی|از من دفاع/.test(q)) worldCommand='محافظت کنید';
+    else if(/تجارت|به بازار|خرید و فروش/.test(q)) worldCommand='تجارت کنید';
+    else if(/با هم حرف|با هم صحبت|گفت.?وگو کنید|با یکدیگر صحبت/.test(q)) {
+      const residents=agentsRef.current;
+      residents.forEach(a=>{a.goal='گفت‌وگو و همکاری گروهی';a.activity='در حال گفت‌وگو با دیگر ایجنت‌ها';a.social=Math.min(100,a.social+3);});
+      setEventText('💬 فرمان گفت‌وگوی گروهی صادر شد؛ ایجنت‌ها برای تعامل و همکاری آماده شدند.');
+      setAgentCommand('گفت‌وگوی گروهی');
+      setChat(v=>[...v,{role:'assistant',content:'انجام شد؛ فرمان گفت‌وگوی گروهی را اجرا کردم و هدف اجتماعی ایجنت‌ها را به همکاری تغییر دادم.'}]);
+      setAiStatus('فرمان جهان اجرا شد');return;
+    }
+    if(worldCommand){
+      commandAgents(worldCommand);
+      setChat(v=>[...v,{role:'assistant',content:'✅ فرمان اجرا شد: «'+worldCommand+'». وضعیت جهان را روی صفحه ببین. می‌توانی فرمان بعدی را هم همین‌جا بنویسی.'}]);
+      setAiStatus('فرمان جهان اجرا شد');
+      setHudOpen(true);
+      return;
+    }
+    setChatBusy(true);setAiStatus('در حال فکر کردن…');
     try{
       const res=await api.post('/api/agent/chat',{agent:agentForReply,messages:next,time,location:biome(cellAt(player.x,player.y).cx,cellAt(player.x,player.y).cy)});
       const reply=String(res.data?.reply||'');
