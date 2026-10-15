@@ -278,8 +278,8 @@ function buildWorld(px:number,pz:number,constructionProgress:number,construction
       }
     }
     const lane=(seed%2?-1:1)*3.25;
-    if(gz===0) addCar(root,baseX+lane,roadZ+(hash(seed,50)-.5)*120,seed+100,'x');
-    if(gx===0) addCar(root,roadX+(hash(seed,40)-.5)*120,baseZ+lane,seed+101,'z');
+    if(gz===0) addCar(root,baseX+(hash(seed,50)-.5)*34,roadZ+lane,seed+100,'x');
+    if(gx===0) addCar(root,roadX+lane,baseZ+(hash(seed,40)-.5)*34,seed+101,'z');
     addLamp(root,baseX+(gx%2)*18,baseZ+(gz%2)*18,seed);
   }
 
