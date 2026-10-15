@@ -213,8 +213,19 @@ function App() {
       setRallyTarget({x:player.x,y:player.y});
       agentsRef.current.forEach(a=>{a.goal='همراهی با فرمانده';a.activity='در حال دنبال کردن فرمانده';});
     }else if(command==='کنار من بمانید'){
-      setRallyTarget({x:player.x,y:player.y});
-      agentsRef.current.forEach(a=>{a.x=player.x+(Math.random()-.5)*36;a.y=player.y+(Math.random()-.5)*36;a.activity='در کنار فرمانده';a.mood='آماده کمک';});
+      // Give every resident a distinct formation slot and let collision-aware walking bring them in.
+      // Never teleport the entire population into one small area: that creates overlapping agents.
+      setRallyTarget(null);
+      const residents=agentsRef.current;
+      residents.forEach((a,index)=>{
+        const ring=Math.floor(Math.sqrt(index))+1;
+        const angle=index*2.399963229728653;
+        a.targetX=player.x+Math.cos(angle)*ring*5.5;
+        a.targetY=player.y+Math.sin(angle)*ring*5.5;
+        a.pathFailures=0;
+        a.activity='در حال رفتن به جایگاه امن کنار فرمانده';
+        a.mood='آماده کمک';
+      });
     }else if(command==='پراکنده شوید'){
       setRallyTarget(null);
       agentsRef.current.forEach(a=>{a.vx=(Math.random()-.5)*2;a.vy=(Math.random()-.5)*2;a.activity='در حال بازگشت به فعالیت روزانه';});
