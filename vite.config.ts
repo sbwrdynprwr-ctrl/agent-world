@@ -10,6 +10,13 @@ export default defineConfig({
       process.env.APPDEPLOY_VITE_SOURCEMAP === 'hidden' ? 'hidden' : false,
     rollupOptions: {
       maxParallelFileOps: 128,
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'three-vendor': ['three'],
+          'icons-vendor': ['lucide-react'],
+        },
+      },
     },
   },
 });
