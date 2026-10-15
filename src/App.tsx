@@ -17,7 +17,7 @@ type Agent = {
   id:number; x:number; y:number; vx:number; vy:number; job:string; goal:string;
   mood:string; energy:number; wealth:number; generation:number; age:number;
   personality:string; activity:string; home:string; hunger:number; social:number;
-  intelligence:number; skills:string[]; partnerId?:number; children:number; reputation:number; vehicle:string; targetX?:number; targetY?:number;
+  intelligence:number; skills:string[]; partnerId?:number; children:number; reputation:number; vehicle:string; targetX?:number; targetY?:number; pathFailures?:number;
 };
 type ChatMessage = { role:'user'|'assistant'; content:string };
 type Site = { x:number; y:number; kind:'city'|'farm'|'factory'|'hospital'|'market'|'park'; seed:number };
@@ -497,8 +497,8 @@ function App() {
             const sideX=-uy,sideY=ux;const candidates=[{x:a.x+ux*step,y:a.y+uy*step},{x:a.x+ux*step,y:a.y},{x:a.x,y:a.y+uy*step},{x:a.x+(ux+sideX*.75)*step,y:a.y+(uy+sideY*.75)*step},{x:a.x+(ux-sideX*.75)*step,y:a.y+(uy-sideY*.75)*step},{x:a.x+sideX*step,y:a.y+sideY*step},{x:a.x-sideX*step,y:a.y-sideY*step}];
             const next=candidates.find(c=>!blocked(c.x,c.y));
             if(next){a.vx=(next.x-a.x)/step*.42;a.vy=(next.y-a.y)/step*.42;a.x=next.x;a.y=next.y;}
-            else{a.vx=0;a.vy=0;a.targetX=undefined;a.targetY=undefined;a.activity='در حال پیدا کردن مسیر امن';}
-          }else{a.x=a.targetX as number;a.y=a.targetY as number;a.vx=0;a.vy=0;a.targetX=undefined;a.targetY=undefined;if(a.activity.includes('مسیر'))a.activity='در حال انجام وظیفه شغلی';}
+            else{a.vx=0;a.vy=0;a.pathFailures=(a.pathFailures||0)+1;a.activity='در حال پیدا کردن مسیر امن';if((a.pathFailures||0)>=3){const retry=agentTarget(a);a.targetX=retry.x;a.targetY=retry.y;a.pathFailures=0;a.activity='مسیر قبلی بسته بود؛ مقصد تازه انتخاب شد';}}
+          }else{a.x=a.targetX as number;a.y=a.targetY as number;a.vx=0;a.vy=0;a.targetX=undefined;a.targetY=undefined;a.pathFailures=0;if(a.activity.includes('مسیر'))a.activity='در حال انجام وظیفه شغلی';}
         }else if(!rallyTarget && Math.random()<.24){
           if(Math.hypot(a.vx,a.vy)<.04){const t=agentTarget(a);a.targetX=t.x;a.targetY=t.y;a.activity='در مسیر '+(a.job==='کشاورز'?'مزرعه':a.job==='تاجر'?'بازار':'مقصد کاری');}
           const wanderX=a.x+a.vx*6+(Math.random()-.5)*.8,wanderY=a.y+a.vy*6+(Math.random()-.5)*.8;
