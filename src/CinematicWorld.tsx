@@ -2,7 +2,7 @@ import {useEffect,useRef} from 'react';
 import * as THREE from 'three';
 
 type AgentVisual={id:number;x:number;y:number;vx:number;vy:number;activity:string;mood:string;job:string};
-type Props={playerX:number;playerY:number;angle:number;time:number;constructionProgress:number;constructionX:number;constructionY:number;constructionName:string;agents:AgentVisual[];onLook:(delta:number)=>void};
+type Props={playerX:number;playerY:number;angle:number;onMoveTarget:(target:{x:number;y:number})=>void;time:number;constructionProgress:number;constructionX:number;constructionY:number;constructionName:string;agents:AgentVisual[];onLook:(delta:number)=>void};
 
 const CELL=180;
 const RANGE=2;
@@ -309,10 +309,10 @@ function buildWorld(px:number,pz:number,constructionProgress:number,construction
   return root;
 }
 
-export default function CinematicWorld({playerX,playerY,angle,time,constructionProgress,constructionX,constructionY,constructionName,agents,onLook}:Props){
+export default function CinematicWorld({playerX,playerY,angle,onMoveTarget,time,constructionProgress,constructionX,constructionY,constructionName,agents,onLook}:Props){
   const hostRef=useRef<HTMLDivElement>(null);
   const latest=useRef({playerX,playerY,angle,time,constructionProgress,constructionX,constructionY,constructionName,agents});
-  const look=useRef({active:false,lastX:0});
+  const look=useRef({active:false,lastX:0,startX:0,startY:0,startTime:0,moved:false});
   latest.current={playerX,playerY,angle,time,constructionProgress,constructionX,constructionY,constructionName,agents};
 
   useEffect(()=>{
@@ -398,16 +398,32 @@ export default function CinematicWorld({playerX,playerY,angle,time,constructionP
 
         const down=(e:PointerEvent)=>{
           if(e.clientX<window.innerWidth*.40)return;
-          look.current={active:true,lastX:e.clientX};
+          look.current={active:true,lastX:e.clientX,startX:e.clientX,startY:e.clientY,startTime:performance.now(),moved:false};
           renderer?.domElement.setPointerCapture(e.pointerId);
         };
         const move=(e:PointerEvent)=>{
           if(!look.current.active)return;
-          const dx=e.clientX-look.current.lastX;
-          look.current.lastX=e.clientX;
-          onLook(dx*.005);
+          const total=Math.hypot(e.clientX-look.current.startX,e.clientY-look.current.startY);
+          if(total>10)look.current.moved=true;
+          if(look.current.moved){
+            const dx=e.clientX-look.current.lastX;
+            look.current.lastX=e.clientX;
+            onLook(dx*.005);
+          }
         };
         const up=(e:PointerEvent)=>{
+          const tap=!look.current.moved && performance.now()-look.current.startTime<550;
+          if(tap && camera && renderer){
+            const rect=renderer.domElement.getBoundingClientRect();
+            const pointer=new THREE.Vector2(((e.clientX-rect.left)/rect.width)*2-1,-((e.clientY-rect.top)/rect.height)*2+1);
+            const raycaster=new THREE.Raycaster();
+            raycaster.setFromCamera(pointer,camera);
+            const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+            const hit=new THREE.Vector3();
+            if(raycaster.ray.intersectPlane(groundPlane,hit)){
+              onMoveTarget({x:hit.x+latest.current.playerX,y:hit.z+latest.current.playerY});
+            }
+          }
           look.current.active=false;
           if(renderer?.domElement.hasPointerCapture(e.pointerId))renderer.domElement.releasePointerCapture(e.pointerId);
         };
