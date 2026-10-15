@@ -265,7 +265,9 @@ function buildWorld(px:number,pz:number,constructionProgress:number,construction
   for(let gx=-RANGE;gx<=RANGE;gx++) for(let gz=-RANGE;gz<=RANGE;gz++){
     const baseX=px+(gx+.5)*CELL;
     const baseZ=pz+(gz+.5)*CELL;
-    const seed=Math.floor(px/CELL)*97+Math.floor(pz/CELL)*131+gx*31+gz*17;
+    const worldGX=Math.floor(px/CELL)+gx;
+    const worldGZ=Math.floor(pz/CELL)+gz;
+    const seed=worldGX*97+worldGZ*131;
     if(hash(seed,7)>.28){
       for(let i=0;i<3;i++){
         const bx=baseX+(hash(seed,i)-.5)*110;
