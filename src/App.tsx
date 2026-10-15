@@ -352,14 +352,22 @@ function App() {
         else if(a.social>82)a.mood='اجتماعی';
         if(a.hunger<55 && a.energy>35 && Math.random()<.3){a.wealth+=Math.max(0,Math.round((a.intelligence-70)*.02));}
         if(a.social>88 && a.reputation>65 && Math.random()<.004){a.children=Math.min(5,a.children+1);a.generation=Math.max(a.generation,2);}
-        // Agents now travel toward real simulated destinations instead of only jittering in place.
+        // Move in short, collision-checked steps so residents do not jump through buildings or cars.
         if(!rallyTarget && Number.isFinite(a.targetX) && Number.isFinite(a.targetY)){
           const dx=(a.targetX as number)-a.x,dy=(a.targetY as number)-a.y,d=Math.hypot(dx,dy);
-          if(d>9){a.vx=dx/d*.42;a.vy=dy/d*.42;a.x+=a.vx*5.5;a.y+=a.vy*5.5;}
-          else{a.x=a.targetX as number;a.y=a.targetY as number;a.vx=0;a.vy=0;a.targetX=undefined;a.targetY=undefined;if(a.activity.includes('مسیر'))a.activity='در حال انجام وظیفه شغلی';}
+          if(d>9){
+            const step=Math.min(d,10),ux=dx/d,uy=dy/d,radius=1.8;
+            const blocked=(x:number,y:number)=>isBuildingBlocked(x,y,a.x,a.y,radius)||isCarBlocked(x,y,radius);
+            const candidates=[{x:a.x+ux*step,y:a.y+uy*step},{x:a.x+ux*step,y:a.y},{x:a.x,y:a.y+uy*step}];
+            const next=candidates.find(c=>!blocked(c.x,c.y));
+            if(next){a.vx=(next.x-a.x)/step*.42;a.vy=(next.y-a.y)/step*.42;a.x=next.x;a.y=next.y;}
+            else{a.vx=0;a.vy=0;a.targetX=undefined;a.targetY=undefined;a.activity='در حال پیدا کردن مسیر امن';}
+          }else{a.x=a.targetX as number;a.y=a.targetY as number;a.vx=0;a.vy=0;a.targetX=undefined;a.targetY=undefined;if(a.activity.includes('مسیر'))a.activity='در حال انجام وظیفه شغلی';}
         }else if(!rallyTarget && Math.random()<.24){
           if(Math.hypot(a.vx,a.vy)<.04){const t=agentTarget(a);a.targetX=t.x;a.targetY=t.y;a.activity='در مسیر '+(a.job==='کشاورز'?'مزرعه':a.job==='تاجر'?'بازار':'مقصد کاری');}
-          a.x+=a.vx*6+(Math.random()-.5)*.8;a.y+=a.vy*6+(Math.random()-.5)*.8;
+          const wanderX=a.x+a.vx*6+(Math.random()-.5)*.8,wanderY=a.y+a.vy*6+(Math.random()-.5)*.8;
+          if(!isBuildingBlocked(wanderX,wanderY,a.x,a.y,1.8)&&!isCarBlocked(wanderX,wanderY,1.8)){a.x=wanderX;a.y=wanderY;}
+          else{a.vx=0;a.vy=0;a.targetX=undefined;a.targetY=undefined;}
         }
         if(Math.random()<.05 && !Number.isFinite(a.targetX)){const t=agentTarget(a);a.targetX=t.x;a.targetY=t.y;}
       });
