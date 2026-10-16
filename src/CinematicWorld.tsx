@@ -337,14 +337,16 @@ export default function CinematicWorld({playerX,playerY,angle,onMoveTarget,time,
     const init=()=>{
       try{
         renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,window.innerWidth<800?1.5:2));
+        // Sharper image on modern phones while keeping a conservative GPU cap.
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,window.innerWidth<800?1.75:2));
         renderer.setSize(host.clientWidth||window.innerWidth,host.clientHeight||window.innerHeight,false);
         renderer.setClearColor(0x78a9b7,1);
         renderer.outputColorSpace=THREE.SRGBColorSpace;
         renderer.toneMapping=THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure=1.34;
+        renderer.toneMappingExposure=1.18;
         renderer.shadowMap.enabled=true;
         renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+        renderer.shadowMap.autoUpdate=true;
         renderer.info.autoReset=true;
         renderer.domElement.className='cinematic-canvas';
         renderer.domElement.style.touchAction='none';
@@ -352,14 +354,16 @@ export default function CinematicWorld({playerX,playerY,angle,onMoveTarget,time,
 
         scene=new THREE.Scene();
         scene.background=new THREE.Color(0x91c5df);
-        scene.fog=new THREE.Fog(0x91c5df,520,2500);
+        scene.fog=new THREE.Fog(0x91c5df,680,2900);
 
-        const hemi=new THREE.HemisphereLight(0xdff3ff,0x514538,3.15);
+        const hemi=new THREE.HemisphereLight(0xe5f5ff,0x40372d,2.7);
         scene.add(hemi);
-        const sun=new THREE.DirectionalLight(0xfff0d8,8.2);
+        const sun=new THREE.DirectionalLight(0xfff2df,7.2);
         sun.position.set(-260,420,220);
         sun.castShadow=true;
-        sun.shadow.mapSize.set(window.innerWidth<800?1536:2048,window.innerWidth<800?1536:2048);
+        sun.shadow.mapSize.set(window.innerWidth<800?2048:3072,window.innerWidth<800?2048:3072);
+        sun.shadow.bias=-0.00018;
+        sun.shadow.normalBias=0.025;
         sun.shadow.camera.near=1;
         sun.shadow.camera.far=1400;
         sun.shadow.camera.left=-500;
@@ -471,8 +475,8 @@ export default function CinematicWorld({playerX,playerY,angle,onMoveTarget,time,
           (scene.fog as THREE.Fog).color.copy(sky);
           (scene.fog as THREE.Fog).near=daylight>.55?420:230;
           (scene.fog as THREE.Fog).far=daylight>.55?2200:1350;
-          hemi.intensity=1.25+daylight*2.3;
-          sun.intensity=1.5+daylight*6.1;
+          hemi.intensity=1.15+daylight*2.0;
+          sun.intensity=1.2+daylight*5.8;
           sun.position.set(Math.cos(s.time/24*Math.PI*2)*420,260+daylight*420,Math.sin(s.time/24*Math.PI*2)*340);
           cityGlow.intensity=.8+(1-daylight)*7;
 
