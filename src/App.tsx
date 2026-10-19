@@ -502,10 +502,11 @@ function App() {
         // Move in short, collision-checked steps so residents do not jump through buildings or cars.
         if(!rallyTarget && Number.isFinite(a.targetX) && Number.isFinite(a.targetY)){
           const dx=(a.targetX as number)-a.x,dy=(a.targetY as number)-a.y,d=Math.hypot(dx,dy);
-          if(d>9){
-            // Shorter collision-checked steps make walking look less like teleporting
-            // and give nearby residents more room to avoid one another.
-            const step=Math.min(d,4.5),ux=dx/d,uy=dy/d,radius=2.0;
+          if(d>2.5){
+            // Never snap to the destination from several metres away: even the final
+            // approach must pass the same collision checks as ordinary walking.
+            // Small sub-steps make narrow passages safer and reduce overlap on mobile.
+            const step=Math.min(d,2.5),ux=dx/d,uy=dy/d,radius=1.8;
             const blocked=(x:number,y:number)=>isBuildingBlocked(x,y,a.x,a.y,radius)||isCarBlocked(x,y,radius)||residents.some(other=>other.id!==a.id&&Math.hypot(other.x-x,other.y-y)<3.2);
             const sideX=-uy,sideY=ux;const candidates=[{x:a.x+ux*step,y:a.y+uy*step},{x:a.x+ux*step,y:a.y},{x:a.x,y:a.y+uy*step},{x:a.x+(ux+sideX*.75)*step,y:a.y+(uy+sideY*.75)*step},{x:a.x+(ux-sideX*.75)*step,y:a.y+(uy-sideY*.75)*step},{x:a.x+sideX*step,y:a.y+sideY*step},{x:a.x-sideX*step,y:a.y-sideY*step}];
             const next=candidates.find(c=>!blocked(c.x,c.y));
